@@ -259,7 +259,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Eliminar registro</div>
-    <div class="modal-sub" id="modalDelSub">¿Eliminás este registro de OneDrive? Esta acción no se puede deshacer.</div>
+    <div class="modal-sub" id="modalDelSub">¿Confirmás la eliminación? Esta acción no se puede deshacer.</div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modalDel')">Cancelar</button>
       <button class="btn-confirm-del" id="btnConfirmDel" onclick="confirmDelete()"><i class="ti ti-trash"></i>Eliminar</button>
@@ -280,8 +280,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15
     <div class="fg"><label>Cuenta contable</label><select id="ef-cuenta"></select></div>
     <div class="fg"><label>Importe ($)</label><input type="number" id="ef-importe" placeholder="0" inputmode="decimal" min="0" step="0.01"></div>
     <div class="fg"><label>Mes</label><select id="ef-mes"></select></div>
-    <div class="fg"><label>Estado</label><select id="ef-estado"><option value="Contable">Contable — dato real</option><option value="Proyectado">Proyectado — estimado</option></select></div>
-    <div class="fg"><label>Medio de pago</label><input type="text" id="ef-medio" placeholder="Visa Galicia, efectivo…"></div>
+    <div class="fg"><label>Medio de pago</label><select id="ef-medio"><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option></select></div>
     <div class="fg"><label>Detalle</label><textarea id="ef-detalle" placeholder="Descripción…"></textarea></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modalEdit')">Cancelar</button>
@@ -526,7 +525,7 @@ async function appendRow(row) {
 }
 
 // ── UI HELPERS ────────────────────────────────────────────────────────────────
-function fmt(n){return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);}
+function fmt(n){return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n));}
 function fmtK(n){if(Math.abs(n)>=1000000)return'$'+(n/1000000).toFixed(1)+'M';if(Math.abs(n)>=1000)return'$'+(n/1000).toFixed(0)+'K';return'$'+Math.round(n);}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 function setSS(st,tx){document.getElementById('sync-dot').className='sync-dot '+st;document.getElementById('sync-text').textContent=tx;}
@@ -552,10 +551,16 @@ function renderDash(){
   const egr=tx.filter(t=>['3. Gtos Fijos','4. Gtos Variables','5. Gtos Financieros'].includes(t.estructura)).reduce((s,t)=>s+t.saldo,0);
   const si=tx.find(t=>t.estructura==='1. Saldo Inicial');
   const fl=ing+egr;
-  document.getElementById('dash-metrics').innerHTML=`<div class="metric"><div class="ml">Ingresos</div><div class="mv pos">${fmtK(ing)}</div></div><div class="metric"><div class="ml">Egresos</div><div class="mv neg">${fmtK(Math.abs(egr))}</div></div><div class="metric"><div class="ml">Flujo neto</div><div class="mv ${fl>=0?'pos':'neg'}">${fmtK(fl)}</div></div><div class="metric"><div class="ml">Saldo inicial</div><div class="mv">${si?fmtK(si.saldo):'—'}</div></div>`;
+  document.getElementById('dash-metrics').innerHTML=`<div class="metric"><div class="ml">Ingresos</div><div class="mv pos">${fmt(ing)}</div></div><div class="metric"><div class="ml">Egresos</div><div class="mv neg">${fmt(Math.abs(egr))}</div></div><div class="metric"><div class="ml">Flujo neto</div><div class="mv ${fl>=0?'pos':'neg'}">${fmt(fl)}</div></div><div class="metric"><div class="ml">Saldo inicial</div><div class="mv">${si?fmt(si.saldo):'—'}</div></div>`;
   const sh=tx.filter(t=>t.estructura!=='1. Saldo Inicial');
   if(!sh.length){document.getElementById('dash-txlist').innerHTML='<div class="empty"><i class="ti ti-inbox"></i><p>Sin movimientos este mes</p></div>';return;}
-  document.getElementById('dash-txlist').innerHTML=sh.slice(0,30).map(t=>`<div class="tx-item"><div class="tx-icon ${t.estructura==='2. Ingresos'?'ing':'egr'}"><i class="ti ${t.estructura==='2. Ingresos'?'ti-arrow-up-right':'ti-arrow-down-right'}"></i></div><div class="tx-body"><div class="tx-name">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div><div class="tx-meta">${t.agrupador}${t.detalle?' · '+t.detalle:''}</div></div><div class="tx-amount ${t.saldo>=0?'pos':'neg'}">${fmtK(t.saldo)}</div></div>`).join('');
+  document.getElementById('dash-txlist').innerHTML=sh.slice(0,30).map(t=>`<div class="tx-item">
+    <div class="tx-body">
+      <div class="tx-name">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div>
+      <div class="tx-meta">${t.agrupador}${t.detalle?' · '+t.detalle:''}</div>
+    </div>
+    <div class="tx-amount ${t.saldo>=0?'pos':'neg'}">${fmt(t.saldo)}</div>
+  </div>`).join('');
 }
 
 // Track which agrupadores are expanded: key = "estructura||agrupador"
@@ -699,7 +704,9 @@ function openDelete(idx){
   closeAllSwipe();
   pendingDeleteIdx=idx;
   const t=transactions[idx];
-  document.getElementById('modalDelSub').textContent=`¿Eliminás "${t.cc}" (${fmt(t.saldo)}) de OneDrive? Esta acción no se puede deshacer.`;
+  document.getElementById('modalDelSub').textContent='¿Confirmás eliminar "'+t.cc+'" ('+fmt(t.saldo)+')? Esta acción no se puede deshacer.';
+  document.getElementById('btnConfirmDel').disabled=false;
+  document.getElementById('btnConfirmDel').innerHTML='<i class="ti ti-trash"></i>Eliminar';
   openModal('modalDel');
 }
 
@@ -754,19 +761,21 @@ function openEdit(idx){
   const t=transactions[idx];
   const isIngreso=t.estructura==='2. Ingresos';
 
-  // Set tipo
   document.getElementById('edit-btn-egr').classList.toggle('active',!isIngreso);
   document.getElementById('edit-btn-ing').classList.toggle('active',isIngreso);
   populateEditCuentas(isIngreso?'ingreso':'egreso');
 
-  // Populate fields
   const cSel=document.getElementById('ef-cuenta');
   Array.from(cSel.options).forEach(o=>{if(o.value===t.cc)o.selected=true;});
   document.getElementById('ef-importe').value=Math.abs(t.saldo);
-  document.getElementById('ef-medio').value=t.medio||'';
   document.getElementById('ef-detalle').value=t.detalle||'';
 
-  // Set mes
+  // Set medio select
+  const mSel2=document.getElementById('ef-medio');
+  let medioSet=false;
+  Array.from(mSel2.options).forEach(o=>{if(o.value===t.medio){o.selected=true;medioSet=true;}});
+  if(!medioSet) mSel2.selectedIndex=0;
+
   const mSel=document.getElementById('ef-mes');
   mSel.innerHTML='';
   for(let a=2025;a<=2026;a++)for(let m=1;m<=12;m++){
@@ -775,9 +784,6 @@ function openEdit(idx){
     if(m===t.mes&&a===t.anio)opt.selected=true;
     mSel.appendChild(opt);
   }
-
-  // Set estado
-  document.getElementById('ef-estado').value=t.estado||'Contable';
   openModal('modalEdit');
 }
 
@@ -798,7 +804,7 @@ async function confirmEdit(){
   const imp=parseFloat(document.getElementById('ef-importe').value)||0;
   if(!imp){showToast('Ingresá un importe');return;}
   const[m,a]=document.getElementById('ef-mes').value.split('|').map(Number);
-  const estado=document.getElementById('ef-estado').value;
+  const estado='Contable';
   const medio=document.getElementById('ef-medio').value;
   const detalle=document.getElementById('ef-detalle').value;
   const saldo=isIngreso?Math.abs(imp):-Math.abs(imp);
@@ -817,7 +823,7 @@ async function confirmEdit(){
     transactions[pendingEditIdx]={...t,cc,saldo,mes:m,anio:a,estado,medio,detalle,estructura,agrupador};
     closeModal('modalEdit');
     renderEERR();
-    showToast('Registro actualizado en OneDrive');
+    showToast('Registro actualizado');
   }
   pendingEditIdx=null;
 }
@@ -846,10 +852,15 @@ function getSal(m){return m<=6?1+params.salS1/100:1+params.salS2/100;}
 
 function buildProj(){
   const res=[];let acum=0;
+  const now=new Date();
   const lk=transactions.filter(t=>t.estructura==='1. Saldo Inicial').sort((a,b)=>a.anio!==b.anio?a.anio-b.anio:a.mes-b.mes);
   if(lk.length)acum=lk[lk.length-1].saldo;
-  for(let i=0;i<12;i++){
-    const d=new Date(2025,5+i,1);const m=d.getMonth()+1,a=d.getFullYear();
+  // 6 months before current + current + 6 after = 13 total
+  for(let i=-6;i<=6;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()+i,1);
+    const m=d.getMonth()+1,a=d.getFullYear();
+    const isFuture=d>new Date(now.getFullYear(),now.getMonth(),1);
+    const lbl=MONTHS[m-1].slice(0,3)+' '+a;
     const tx=getTx(m,a);
     let ing=tx.filter(t=>t.estructura==='2. Ingresos').reduce((s,t)=>s+t.saldo,0);
     let egr=tx.filter(t=>['3. Gtos Fijos','4. Gtos Variables','5. Gtos Financieros'].includes(t.estructura)).reduce((s,t)=>s+t.saldo,0);
@@ -857,7 +868,7 @@ function buildProj(){
     if(!ing)ing=3500000*getSal(m);if(!egr)egr=-(1600000*(1+getInf(m)));
     const fl=ing+egr;
     if(si)acum=si.saldo;else acum+=fl;
-    res.push({lbl:MONTHS[m-1].slice(0,3)+' '+a,ing,egr:Math.abs(egr),fl,saldo:acum});
+    res.push({lbl,ing,egr:Math.abs(egr),fl,saldo:acum,isFuture});
   }
   return res;
 }
@@ -866,15 +877,47 @@ function renderProj(){
   const p=buildProj();const labels=p.map(x=>x.lbl);
   const isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
   const tc=isDark?'#9a9a94':'#6b6b66',gc=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)',bc=isDark?'#f0f0ec':'#1a1a18';
+  // Point colors: solid for past/current, dimmed for future
+  const ptColors=p.map(x=>x.isFuture?(isDark?'rgba(240,240,236,0.3)':'rgba(26,26,24,0.25)'):bc);
+  const lineColors=p.map(x=>x.isFuture?(isDark?'rgba(240,240,236,0.3)':'rgba(26,26,24,0.25)'):bc);
+  // Bar colors dimmed for future
+  const ingColors=p.map(x=>x.isFuture?'rgba(26,122,90,0.25)':'rgba(26,122,90,0.75)');
+  const egrColors=p.map(x=>x.isFuture?'rgba(192,57,43,0.25)':'rgba(192,57,43,0.75)');
+
   if(cS){cS.destroy();cS=null;}if(cF){cF.destroy();cF=null;}
-  cS=new Chart(document.getElementById('chartSaldo'),{type:'line',data:{labels,datasets:[{data:p.map(x=>Math.round(x.saldo)),borderColor:bc,backgroundColor:'transparent',tension:0.3,borderWidth:2,pointRadius:3,pointBackgroundColor:bc}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v),color:tc,font:{size:10}},grid:{color:gc},border:{display:false}},x:{ticks:{maxRotation:45,color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
-  cF=new Chart(document.getElementById('chartFlujo'),{type:'bar',data:{labels,datasets:[{data:p.map(x=>Math.round(x.ing)),backgroundColor:'rgba(26,122,90,0.75)',borderRadius:4,borderSkipped:false},{data:p.map(x=>-Math.round(x.egr)),backgroundColor:'rgba(192,57,43,0.75)',borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v),color:tc,font:{size:10}},grid:{color:gc},border:{display:false}},x:{ticks:{maxRotation:45,color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
+
+  cS=new Chart(document.getElementById('chartSaldo'),{
+    type:'line',
+    data:{labels,datasets:[{
+      data:p.map(x=>Math.round(x.saldo)),
+      borderColor:bc,
+      segment:{borderColor:ctx=>p[ctx.p1DataIndex]?.isFuture?(isDark?'rgba(240,240,236,0.3)':'rgba(26,26,24,0.25)'):bc},
+      backgroundColor:'transparent',tension:0.3,borderWidth:2,
+      pointRadius:3,pointBackgroundColor:ptColors,pointBorderColor:ptColors
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v),color:tc,font:{size:10}},grid:{color:gc},border:{display:false}},x:{ticks:{maxRotation:45,color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}
+  });
+
+  cF=new Chart(document.getElementById('chartFlujo'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {data:p.map(x=>Math.round(x.ing)),backgroundColor:ingColors,borderRadius:4,borderSkipped:false},
+      {data:p.map(x=>-Math.round(x.egr)),backgroundColor:egrColors,borderRadius:4,borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v),color:tc,font:{size:10}},grid:{color:gc},border:{display:false}},x:{ticks:{maxRotation:45,color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}
+  });
+
   document.getElementById('proj-assumptions').innerHTML='<strong>Supuestos activos</strong><br>Inflación mensual: Q1 '+params.infQ1+'% · Q2 '+params.infQ2+'% · Q3 '+params.infQ3+'% · Q4 '+params.infQ4+'%<br>Paritaria: H1 +'+params.salS1+'% · H2 +'+params.salS2+'%';
 }
 
+function getMedioOpts(tipo){
+  if(tipo==='ingreso') return '<option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option>';
+  return '<option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option>';
+}
 function renderNuevo(resetForm){
   const tipo=document.getElementById('btn-egr').classList.contains('active')?'egreso':'ingreso';
   document.getElementById('f-cuenta').innerHTML=(tipo==='ingreso'?CI:CE).map(c=>'<option value="'+c+'">'+c+'</option>').join('');
+  document.getElementById('f-medio').innerHTML=getMedioOpts(tipo);
   const ms=document.getElementById('f-mes');
   const now=new Date();
   const curVal=(now.getMonth()+1)+'|'+now.getFullYear();
@@ -885,7 +928,7 @@ function renderNuevo(resetForm){
   }
   if(resetForm){
     document.getElementById('f-importe').value='';
-    document.getElementById('f-medio').value='';
+    document.getElementById('f-medio').selectedIndex=0;
     document.getElementById('f-detalle').value='';
   }
 }
