@@ -511,35 +511,38 @@ async function appendRow(row) {
   if (!fileId) { showToast('Sin conexión OneDrive'); return false; }
   setSS('syncing', 'Guardando…');
   try {
-    // Get the full used range to find the actual last row with data
-    const ur = await gf('https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/usedRange');
-    const ud = await ur.json();
-
-    // Find the last row that actually has data in column A (index 0)
-    // values is a 2D array — scan from bottom up for first non-empty cell in col A
-    const vals = ud.values || [];
-    let lastDataRow = 0;
-    for (let i = vals.length - 1; i >= 0; i--) {
-      if (vals[i][0] !== null && vals[i][0] !== '') {
-        lastDataRow = i; // 0-based index in values array
-        break;
-      }
+    // Use column A to find last row with data — more reliable than usedRange.rowCount
+    // Get the last cell in column A that has data
+    const colR = await gf(
+      'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
+      '/workbook/worksheets/Base/range(address=\'A:A\')/usedRange'
+    );
+    let nextRow;
+    if (colR.ok) {
+      const colD = await colR.json();
+      // rowCount of column A used range = last row with data in col A
+      nextRow = (colD.rowCount || 0) + 1;
+    } else {
+      // Fallback: use sheet usedRange rowCount
+      const ur = await gf('https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/usedRange');
+      const ud = await ur.json();
+      nextRow = (ud.rowCount || 0) + 1;
     }
-    // Excel row number = lastDataRow + 1 (values are 0-based, Excel rows are 1-based)
-    // Next empty row = lastDataRow + 2
-    const nextRow = lastDataRow + 2;
 
     const pr = await gf(
-      'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/range(address=\'A' + nextRow + ':L' + nextRow + '\')',
+      'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
+      '/workbook/worksheets/Base/range(address=\'A' + nextRow + ':L' + nextRow + '\')',
       { method: 'PATCH', body: JSON.stringify({ values: [row] }) }
     );
     if (!pr.ok) throw new Error('write');
-
-    // Store the actual Excel row index for future delete/edit operations
-    const savedRi = nextRow;
     setSS('ok', 'Guardado · ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
-    return savedRi;
-  } catch(e) { setSS('err', 'Error al guardar'); showToast('Error al guardar'); return false; }
+    return nextRow;
+  } catch(e) {
+    console.error('appendRow error:', e);
+    setSS('err', 'Error al guardar');
+    showToast('Error al guardar');
+    return false;
+  }
 }
 
 // ── UI HELPERS ────────────────────────────────────────────────────────────────
