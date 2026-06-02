@@ -115,12 +115,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 .btn-logout{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:2px;margin-left:2px;}
 
 /* DASH SUMMARY BAR */
-.dash-summary{display:flex;align-items:stretch;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin:0 16px 20px;overflow:hidden;}
-.dash-sum-item{flex:1;min-width:0;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;}
-.dash-sum-divider{width:1px;flex-shrink:0;background:var(--border);margin:10px 0;}
-.dash-sum-label{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:0.04em;text-transform:uppercase;white-space:nowrap;}
-.dash-sum-value{font-family:var(--mono);font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;}
+.dash-summary{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin:0 16px 20px;overflow:hidden;}
+.dash-sum-row{display:flex;align-items:stretch;}
+.dash-sum-item{flex:1;min-width:0;padding:12px 14px;display:flex;flex-direction:column;gap:5px;}
+.dash-sum-item.bordered{border-left:1px solid var(--border);}
+.dash-sum-divider-h{height:1px;background:var(--border);margin:0;}
+.dash-sum-result{padding:12px 14px;display:flex;justify-content:space-between;align-items:baseline;}
+.dash-sum-label{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:0.04em;text-transform:uppercase;}
+.dash-sum-value{font-family:var(--mono);font-size:16px;font-weight:500;white-space:nowrap;}
 .dash-sum-value.pos{color:var(--green);}.dash-sum-value.neg{color:var(--red);}
+.dash-result-label{font-size:13px;font-weight:500;color:var(--text2);}
+.dash-result-value{font-family:var(--mono);font-size:18px;font-weight:500;}
 
 /* PERIOD NAV */
 .period-nav{padding:0 16px 16px;}
@@ -667,23 +672,22 @@ function renderDash(){
   const egr=tx.filter(t=>['3. Gtos Fijos','4. Gtos Variables','5. Gtos Financieros'].includes(t.estructura)).reduce((s,t)=>s+t.saldo,0);
   const si=tx.find(t=>t.estructura==='1. Saldo Inicial');
   const fl=ing+egr;
-  // Build summary bar: Ingresos / Egresos / Resultado
-  const resColor = fl>=0?'var(--green)':'var(--red)';
   document.getElementById('dash-metrics').innerHTML=`
     <div class="dash-summary">
-      <div class="dash-sum-item">
-        <div class="dash-sum-label">Ingresos</div>
-        <div class="dash-sum-value pos">${fmt(ing)}</div>
+      <div class="dash-sum-row">
+        <div class="dash-sum-item">
+          <div class="dash-sum-label">Ingresos</div>
+          <div class="dash-sum-value pos">${fmt(ing)}</div>
+        </div>
+        <div class="dash-sum-item bordered">
+          <div class="dash-sum-label">Egresos</div>
+          <div class="dash-sum-value neg">-${fmt(Math.abs(egr))}</div>
+        </div>
       </div>
-      <div class="dash-sum-divider"></div>
-      <div class="dash-sum-item">
-        <div class="dash-sum-label">Egresos</div>
-        <div class="dash-sum-value neg">-${fmt(Math.abs(egr))}</div>
-      </div>
-      <div class="dash-sum-divider"></div>
-      <div class="dash-sum-item">
-        <div class="dash-sum-label">Resultado</div>
-        <div class="dash-sum-value ${fl>=0?'pos':'neg'}">${fmt(fl)}</div>
+      <div class="dash-sum-divider-h"></div>
+      <div class="dash-sum-result">
+        <div class="dash-result-label">Resultado</div>
+        <div class="dash-result-value ${fl>=0?'pos':'neg'}">${fmt(fl)}</div>
       </div>
     </div>`;
   const sh=tx.filter(t=>t.estructura!=='1. Saldo Inicial');
