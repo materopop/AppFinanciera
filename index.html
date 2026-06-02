@@ -486,14 +486,17 @@ async function loadExcel() {
     const rr = await gf('https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/usedRange');
     if (!rr.ok) { setSS('err','Error de lectura'); return; }
     const d = await rr.json();
-    // lastKnownRow from rowCount is always reliable — use as primary source
-    lastKnownRow = d.rowCount || 0;
+    // lastKnownRow: take the MAX between what Excel reports and what we have locally
+    // This handles the case where a write was done on another device/session
+    const excelRowCount = d.rowCount || 0;
+    const localRowCount = parseInt(localStorage.getItem('mf_lastRow') || '0');
+    lastKnownRow = Math.max(excelRowCount, localRowCount);
     if (d.values) {
       parseRows(d.values);
-      // Override with highest ri found if we successfully parsed rows
       const riMax = transactions.reduce((max,t)=>t.ri>max?t.ri:max, 0);
-      if (riMax > 0) lastKnownRow = riMax;
+      lastKnownRow = Math.max(lastKnownRow, riMax);
     }
+    localStorage.setItem('mf_lastRow', lastKnownRow);
     console.log('[loadExcel] lastKnownRow set to', lastKnownRow);
     const ts = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
     setSS('ok', 'Sincronizado · ' + ts);
@@ -520,8 +523,24 @@ async function appendRow(row) {
   if (!fileId) { showToast('Sin conexión OneDrive'); return false; }
   setSS('syncing', 'Guardando…');
   try {
-    // Use local counter — avoids API lag causing duplicate row overwrites
-    const nextRow = lastKnownRow + 1;
+    // Verify the target row is actually empty before writing
+    // This protects against cross-device lastKnownRow drift
+    let nextRow = lastKnownRow + 1;
+    const checkR = await gf(
+      'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
+      '/workbook/worksheets/Base/range(address=\'A' + nextRow + '\')'
+    );
+    if (checkR.ok) {
+      const checkD = await checkR.json();
+      const cellVal = checkD.values?.[0]?.[0];
+      if (cellVal !== null && cellVal !== '' && cellVal !== undefined) {
+        // Row is occupied — find actual next empty row via usedRange
+        const ur = await gf('https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/usedRange');
+        const ud = await ur.json();
+        nextRow = (ud.rowCount || lastKnownRow) + 1;
+        console.log('[appendRow] target row occupied, shifted to', nextRow);
+      }
+    }
     console.log('[appendRow] lastKnownRow='+lastKnownRow+' → writing to row '+nextRow);
     const pr = await gf(
       'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
@@ -529,7 +548,8 @@ async function appendRow(row) {
       { method: 'PATCH', body: JSON.stringify({ values: [row] }) }
     );
     if (!pr.ok) throw new Error('write');
-    lastKnownRow = nextRow; // increment only after confirmed write
+    lastKnownRow = nextRow;
+    localStorage.setItem('mf_lastRow', lastKnownRow);
     setSS('ok', 'Guardado · ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
     return nextRow;
   } catch(e) {
