@@ -573,8 +573,8 @@ function renderEERR(){
     html+='<div class="eerr-gh">'+GL[g]+'</div>';
     const gSub=it.reduce((s,t)=>s+t.saldo,0);
 
-    // Group by agrupador within this estructura
-    const agrupadores=[...new Set(it.map(t=>t.agrupador||'—'))];
+    // Group by agrupador, sorted by numeric prefix
+    const agrupadores=[...new Set(it.map(t=>t.agrupador||'—'))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
 
     for(const agr of agrupadores){
       const aItems=it.filter(t=>(t.agrupador||'—')===agr);
@@ -583,11 +583,14 @@ function renderEERR(){
       const isOpen=eerrExpanded.has(aKey);
       const hasMultiple=aItems.length>1;
 
+      // Strip numeric prefix for display: "1. Alquiler" → "Alquiler"
+      const aLabel=agr.replace(/^\d+\.\s*/,'');
+
       // Agrupador header row (always visible, clickable if has multiple)
       html+=`<div class="acc-header ${hasMultiple?'clickable':''}" onclick="${hasMultiple?'toggleAcc(\''+aKey+'\')':''}">
         <div class="acc-header-left">
           ${hasMultiple?`<i class="ti ${isOpen?'ti-chevron-down':'ti-chevron-right'} acc-chevron"></i>`:'<span style="width:18px;display:inline-block"></span>'}
-          <span class="acc-label">${agr}</span>
+          <span class="acc-label">${aLabel}</span>
           ${aItems.some(t=>t.imprevisto)?'<span class="badge imp">imp</span>':''}
           ${aItems.some(t=>t.estado==='Proyectado')&&!isOpen?'<span class="badge proy">proy</span>':''}
         </div>
