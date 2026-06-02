@@ -612,13 +612,19 @@ function renderDash(){
   document.getElementById('dash-metrics').innerHTML=`<div class="metric"><div class="ml">Ingresos</div><div class="mv pos">${fmt(ing)}</div></div><div class="metric"><div class="ml">Egresos</div><div class="mv neg">${fmt(Math.abs(egr))}</div></div><div class="metric"><div class="ml">Flujo neto</div><div class="mv ${fl>=0?'pos':'neg'}">${fmt(fl)}</div></div><div class="metric"><div class="ml">Saldo inicial</div><div class="mv">${si?fmt(si.saldo):'—'}</div></div>`;
   const sh=tx.filter(t=>t.estructura!=='1. Saldo Inicial');
   if(!sh.length){document.getElementById('dash-txlist').innerHTML='<div class="empty"><i class="ti ti-inbox"></i><p>Sin movimientos este mes</p></div>';return;}
-  document.getElementById('dash-txlist').innerHTML=sh.slice(0,30).map(t=>`<div class="tx-item">
-    <div class="tx-body">
-      <div class="tx-name">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div>
-      <div class="tx-meta">${t.agrupador}${t.detalle?' · '+t.detalle:''}</div>
-    </div>
-    <div class="tx-amount ${t.saldo>=0?'pos':'neg'}">${fmt(t.saldo)}</div>
-  </div>`).join('');
+  document.getElementById('dash-txlist').innerHTML=sh.slice(0,30).map(t=>`
+    <div class="sw-wrap" data-idx="${t.id}">
+      <div class="sw-actions right"><button class="sw-btn edit" onclick="openEdit(${t.id})">Editar</button></div>
+      <div class="sw-actions left"><button class="sw-btn del" onclick="openDelete(${t.id})">Eliminar</button></div>
+      <div class="sw-content">
+        <div class="tx-body" style="flex:1;min-width:0">
+          <div class="tx-name">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div>
+          <div class="tx-meta">${t.agrupador}${t.detalle?' · '+t.detalle:''}</div>
+        </div>
+        <div class="tx-amount ${t.saldo>=0?'pos':'neg'}">${fmt(t.saldo)}</div>
+      </div>
+    </div>`).join('');
+  initSwipeDash();
 }
 
 // Track which agrupadores are expanded: key = "estructura||agrupador"
@@ -711,11 +717,37 @@ function renderEERR(){
 function toggleAcc(key){
   if(eerrExpanded.has(key)) eerrExpanded.delete(key);
   else eerrExpanded.add(key);
-  renderEERR();
+  renderEERR();renderDash();
 }
 
 // ── SWIPE ─────────────────────────────────────────────────────────────────────
-function initSwipe(){
+function initSwipeDash(){
+  document.querySelectorAll('#dash-txlist .sw-wrap').forEach(wrap=>{
+    const content=wrap.querySelector('.sw-content');
+    let startX=0,startY=0,dx=0,dragging=false,locked=false;
+    content.addEventListener('touchstart',e=>{
+      startX=e.touches[0].clientX;startY=e.touches[0].clientY;dx=0;dragging=true;locked=false;
+    },{passive:true});
+    content.addEventListener('touchmove',e=>{
+      if(!dragging)return;
+      dx=e.touches[0].clientX-startX;
+      const dy=e.touches[0].clientY-startY;
+      if(!locked){if(Math.abs(dy)>Math.abs(dx)){dragging=false;return;}locked=true;}
+      e.preventDefault();
+      content.style.transition='none';
+      content.style.transform='translateX('+Math.max(-80,Math.min(80,dx))+'px)';
+    },{passive:false});
+    content.addEventListener('touchend',()=>{
+      dragging=false;content.style.transition='';
+      if(dx<-40){closeAllSwipe(wrap);content.style.transform='translateX(-80px)';content.classList.add('swiped-left');}
+      else if(dx>40){closeAllSwipe(wrap);content.style.transform='translateX(80px)';content.classList.add('swiped-right');}
+      else{content.style.transform='';content.classList.remove('swiped-left','swiped-right');}
+    });
+  });
+  document.getElementById('screen-home').addEventListener('touchstart',e=>{
+    if(!e.target.closest('.sw-wrap'))closeAllSwipe();
+  },{passive:true});
+}
   document.querySelectorAll('.sw-wrap').forEach(wrap=>{
     const content=wrap.querySelector('.sw-content');
     let startX=0,startY=0,dx=0,dragging=false,locked=false;
@@ -782,7 +814,7 @@ async function confirmDelete(){
     transactions.forEach(tx=>{if(tx.ri&&tx.ri>t.ri)tx.ri--;});
     if(lastKnownRow>=t.ri)lastKnownRow--;
     closeModal('modalDel');
-    renderEERR();
+    renderEERR();renderDash();
     showToast('Registro eliminado');
   }
   pendingDeleteIdx=null;
@@ -883,7 +915,7 @@ async function confirmEdit(){
   if(ok){
     transactions[tIdx]={...t,cc,saldo,mes:m,anio:a,estado,medio,detalle,estructura,agrupador};
     closeModal('modalEdit');
-    renderEERR();
+    renderEERR();renderDash();
     showToast('Registro actualizado');
   }
   pendingEditIdx=null;
