@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="MisFinanzas">
 <meta name="theme-color" content="#ffffff">
 <title>MisFinanzas</title>
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -94,6 +94,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15
 .btn-ms{width:100%;max-width:320px;height:52px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--sans);font-size:15px;font-weight:500;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.15s;}
 .btn-ms:hover{background:var(--surface2);}
 .login-note{font-size:12px;color:var(--text3);margin-top:20px;text-align:center;max-width:280px;line-height:1.6;}
+.login-error{font-size:13px;color:var(--red);margin-top:16px;text-align:center;max-width:300px;line-height:1.5;display:none;}
 .sync-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);padding:0 16px 12px;}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);}
 .sync-dot.ok{background:var(--green);}.sync-dot.err{background:var(--red);}
@@ -116,15 +117,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15
 <div class="login-screen" id="loginScreen">
   <div class="login-logo">MisFinanzas</div>
   <div class="login-sub">Conectá tu OneDrive para sincronizar<br>tu planilla Base.xlsx</div>
-  <button class="btn-ms" onclick="loginMicrosoft()">
+  <button class="btn-ms" id="btnLogin" onclick="loginMicrosoft()">
     <svg width="20" height="20" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
     Iniciar sesión con Microsoft
   </button>
+  <div class="login-error" id="loginError"></div>
   <p class="login-note">Solo accede al archivo App_Financiera/Base.xlsx en tu OneDrive personal.</p>
 </div>
 
 <div class="screens" id="appScreens" style="display:none">
-
   <div class="screen active" id="screen-home">
     <div class="header">
       <div><div class="header-title">MisFinanzas</div><div class="header-sub" id="sync-label">Cargando…</div></div>
@@ -207,7 +208,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15
       <button class="btn-submit" onclick="showScreen('proj')"><i class="ti ti-refresh"></i>Recalcular proyección</button>
     </div>
   </div>
-
 </div>
 
 <nav class="nav" id="appNav" style="display:none">
@@ -222,112 +222,237 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-const CLIENT_ID='67b22418-7fde-44ed-a1c2-f272070a6d77';
-const REDIRECT_URI=window.location.origin+window.location.pathname;
-const SCOPES='Files.ReadWrite User.Read';
-const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const GRUPOS=['1. Saldo Inicial','2. Ingresos','3. Gtos Fijos','4. Gtos Variables','5. Gtos Financieros'];
-const GL={'1. Saldo Inicial':'Saldo inicial','2. Ingresos':'Ingresos','3. Gtos Fijos':'Gastos fijos','4. Gtos Variables':'Gastos variables','5. Gtos Financieros':'Gastos financieros'};
-const CE=['Alquiler casa','Alquiler depto','Bidones de agua','Camarita Yi Home','Celular','Colegio','Crédito hipotecario','Cuotas','Disney','Gas','Gastos depto','Home to home','iCloud Apple','Impuestos de tarjetas','Internet','Luz','Microsoft 365','Netflix','Niñera','OSDE','Osde Viki','Pago Deudas','Photoshop','Regalos','Salidas','Seguro auto','Seguro casa','Spotify'];
-const CI=['Sueldo Mate','Sueldo Vicky','Aguinaldo Mate','Alquiler cobrado','Otros ingresos'];
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const CLIENT_ID = '67b22418-7fde-44ed-a1c2-f272070a6d77';
+const REDIRECT_URI = 'https://materopop.github.io/AppFinanciera';
+const SCOPES = 'Files.ReadWrite User.Read';
+const AUTH_ENDPOINT = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize';
+const TOKEN_ENDPOINT = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
 
-let token=null,userData=null,transactions=[],params={infQ1:3.5,infQ2:3.0,infQ3:2.5,infQ4:2.5,salS1:25,salS2:20};
-let dashOff=0,eerrOff=0,cS=null,cF=null,fileId=null;
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const GRUPOS = ['1. Saldo Inicial','2. Ingresos','3. Gtos Fijos','4. Gtos Variables','5. Gtos Financieros'];
+const GL = {'1. Saldo Inicial':'Saldo inicial','2. Ingresos':'Ingresos','3. Gtos Fijos':'Gastos fijos','4. Gtos Variables':'Gastos variables','5. Gtos Financieros':'Gastos financieros'};
+const CE = ['Alquiler casa','Alquiler depto','Bidones de agua','Camarita Yi Home','Celular','Colegio','Crédito hipotecario','Cuotas','Disney','Gas','Gastos depto','Home to home','iCloud Apple','Impuestos de tarjetas','Internet','Luz','Microsoft 365','Netflix','Niñera','OSDE','Osde Viki','Pago Deudas','Photoshop','Regalos','Salidas','Seguro auto','Seguro casa','Spotify'];
+const CI = ['Sueldo Mate','Sueldo Vicky','Aguinaldo Mate','Alquiler cobrado','Otros ingresos'];
 
-function loginMicrosoft(){
-  const st=Math.random().toString(36).slice(2);
-  sessionStorage.setItem('oa_st',st);
-  window.location.href='https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
-    +'?client_id='+CLIENT_ID
-    +'&response_type=token'
-    +'&redirect_uri='+encodeURIComponent(REDIRECT_URI)
-    +'&scope='+encodeURIComponent(SCOPES)
-    +'&state='+st
-    +'&response_mode=fragment';
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let token = null, userData = null, transactions = [];
+let params = {infQ1:3.5,infQ2:3.0,infQ3:2.5,infQ4:2.5,salS1:25,salS2:20};
+let dashOff = 0, eerrOff = 0, cS = null, cF = null, fileId = null;
+
+// ── PKCE HELPERS ──────────────────────────────────────────────────────────────
+function base64url(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+async function generatePKCE() {
+  const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  const challenge = base64url(hash);
+  return { verifier, challenge };
 }
 
-function handleRedirect(){
-  const h=window.location.hash.substring(1);
-  if(!h)return false;
-  const p=new URLSearchParams(h);
-  const t=p.get('access_token');
-  if(!t)return false;
-  token=t;
-  localStorage.setItem('mf_tok',t);
-  localStorage.setItem('mf_exp',Date.now()+parseInt(p.get('expires_in')||3600)*1000);
-  history.replaceState(null,'',window.location.pathname);
-  return true;
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function loginMicrosoft() {
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="font-size:13px">Redirigiendo…</span>';
+
+  const { verifier, challenge } = await generatePKCE();
+  const state = base64url(crypto.getRandomValues(new Uint8Array(16)));
+
+  sessionStorage.setItem('pkce_verifier', verifier);
+  sessionStorage.setItem('pkce_state', state);
+
+  const url = AUTH_ENDPOINT
+    + '?client_id=' + CLIENT_ID
+    + '&response_type=code'
+    + '&redirect_uri=' + encodeURIComponent(REDIRECT_URI)
+    + '&scope=' + encodeURIComponent(SCOPES + ' offline_access')
+    + '&state=' + state
+    + '&code_challenge=' + challenge
+    + '&code_challenge_method=S256'
+    + '&response_mode=query';
+
+  window.location.href = url;
 }
 
-function loadToken(){
-  const t=localStorage.getItem('mf_tok'),e=parseInt(localStorage.getItem('mf_exp')||0);
-  if(t&&Date.now()<e-60000){token=t;return true;}
-  localStorage.removeItem('mf_tok');localStorage.removeItem('mf_exp');return false;
+async function handleCodeRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  const error = params.get('error');
+  const errorDesc = params.get('error_description');
+
+  if (error) {
+    showLoginError('Error de autenticación: ' + (errorDesc || error));
+    history.replaceState(null, '', window.location.pathname);
+    return false;
+  }
+  if (!code) return false;
+
+  const savedState = sessionStorage.getItem('pkce_state');
+  const verifier = sessionStorage.getItem('pkce_verifier');
+
+  if (state !== savedState) {
+    showLoginError('Error de seguridad. Intentá de nuevo.');
+    history.replaceState(null, '', window.location.pathname);
+    return false;
+  }
+
+  history.replaceState(null, '', window.location.pathname);
+
+  // Exchange code for token
+  try {
+    const body = new URLSearchParams({
+      client_id: CLIENT_ID,
+      code,
+      redirect_uri: REDIRECT_URI,
+      grant_type: 'authorization_code',
+      code_verifier: verifier,
+    });
+
+    const r = await fetch(TOKEN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+
+    const data = await r.json();
+    if (data.error) throw new Error(data.error_description || data.error);
+
+    token = data.access_token;
+    const exp = Date.now() + (parseInt(data.expires_in) || 3600) * 1000;
+    localStorage.setItem('mf_tok', token);
+    localStorage.setItem('mf_exp', exp);
+    if (data.refresh_token) localStorage.setItem('mf_ref', data.refresh_token);
+
+    sessionStorage.removeItem('pkce_verifier');
+    sessionStorage.removeItem('pkce_state');
+    return true;
+  } catch(e) {
+    showLoginError('No se pudo completar el login: ' + e.message);
+    return false;
+  }
 }
 
-function clearAuth(){
-  localStorage.removeItem('mf_tok');localStorage.removeItem('mf_exp');token=null;
-  document.getElementById('loginScreen').style.display='flex';
-  document.getElementById('appScreens').style.display='none';
-  document.getElementById('appNav').style.display='none';
+async function refreshToken() {
+  const ref = localStorage.getItem('mf_ref');
+  if (!ref) return false;
+  try {
+    const body = new URLSearchParams({
+      client_id: CLIENT_ID,
+      grant_type: 'refresh_token',
+      refresh_token: ref,
+      scope: SCOPES + ' offline_access',
+    });
+    const r = await fetch(TOKEN_ENDPOINT, {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: body.toString()
+    });
+    const data = await r.json();
+    if (data.error) return false;
+    token = data.access_token;
+    localStorage.setItem('mf_tok', token);
+    localStorage.setItem('mf_exp', Date.now() + (parseInt(data.expires_in)||3600)*1000);
+    if (data.refresh_token) localStorage.setItem('mf_ref', data.refresh_token);
+    return true;
+  } catch(e) { return false; }
 }
 
-async function gf(url,opts={}){
-  const r=await fetch(url,{...opts,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(opts.headers||{})}});
-  if(r.status===401){clearAuth();throw new Error('auth');}
+function loadToken() {
+  const t = localStorage.getItem('mf_tok');
+  const exp = parseInt(localStorage.getItem('mf_exp') || 0);
+  if (t && Date.now() < exp - 60000) { token = t; return true; }
+  return false;
+}
+
+function clearAuth() {
+  ['mf_tok','mf_exp','mf_ref'].forEach(k => localStorage.removeItem(k));
+  token = null;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appScreens').style.display = 'none';
+  document.getElementById('appNav').style.display = 'none';
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>Reintentar';
+}
+
+// ── GRAPH API ─────────────────────────────────────────────────────────────────
+async function gf(url, opts = {}) {
+  const r = await fetch(url, {
+    ...opts,
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', ...(opts.headers||{}) }
+  });
+  if (r.status === 401) {
+    const ok = await refreshToken();
+    if (!ok) { clearAuth(); throw new Error('auth'); }
+    return gf(url, opts);
+  }
   return r;
 }
 
-async function fetchUser(){
-  const r=await gf('https://graph.microsoft.com/v1.0/me');
-  userData=await r.json();
+async function fetchUser() {
+  const r = await gf('https://graph.microsoft.com/v1.0/me');
+  userData = await r.json();
 }
 
-async function loadExcel(){
-  setSS('syncing','Leyendo OneDrive…');
-  try{
-    const mr=await gf('https://graph.microsoft.com/v1.0/me/drive/root:/App_Financiera/Base.xlsx');
-    if(!mr.ok)throw new Error('not_found');
-    const md=await mr.json();fileId=md.id;
-    const rr=await gf('https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Base/usedRange');
-    if(!rr.ok)throw new Error('read');
-    const d=await rr.json();
+async function loadExcel() {
+  setSS('syncing', 'Leyendo OneDrive…');
+  try {
+    const mr = await gf('https://graph.microsoft.com/v1.0/me/drive/root:/App_Financiera/Base.xlsx');
+    if (!mr.ok) { setSS('err','Archivo no encontrado'); showToast('No se encontró App_Financiera/Base.xlsx'); return; }
+    const md = await mr.json(); fileId = md.id;
+    const rr = await gf('https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/usedRange');
+    if (!rr.ok) { setSS('err','Error de lectura'); return; }
+    const d = await rr.json();
     parseRows(d.values);
-    setSS('ok','Sincronizado · '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
-    document.getElementById('sync-label').textContent='Actualizado hoy a las '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
-    loadP();renderAll();showToast('Datos cargados');
-  }catch(e){
-    if(e.message==='not_found'){setSS('err','Archivo no encontrado en OneDrive');showToast('No se encontró App_Financiera/Base.xlsx');}
-    else if(e.message!=='auth'){setSS('err','Error de lectura');showToast('Error al leer el archivo');}
+    const ts = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    setSS('ok', 'Sincronizado · ' + ts);
+    document.getElementById('sync-label').textContent = 'Actualizado a las ' + ts;
+    loadP(); renderAll();
+    showToast('Datos cargados desde OneDrive');
+  } catch(e) {
+    if (e.message !== 'auth') { setSS('err','Error de conexión'); showToast('Error al conectar con OneDrive'); }
   }
 }
 
-function parseRows(rows){
-  if(!rows||rows.length<2)return;
-  transactions=[];
-  for(let i=2;i<rows.length;i++){
-    const r=rows[i];
-    if(!r[0])continue;
-    const saldo=parseFloat(r[4])||0,mes=parseInt(r[8])||0,anio=parseInt(r[9])||0;
-    if(!mes||!anio)continue;
-    transactions.push({cc:r[0]||'',proveedor:r[1]||'',detalle:r[2]||'',medio:r[3]||'',saldo,estado:r[6]||'Contable',imprevisto:r[7]==='Imprevisto',mes,anio,estructura:r[10]||'',agrupador:r[11]||'',ri:i});
+function parseRows(rows) {
+  if (!rows || rows.length < 2) return;
+  transactions = [];
+  for (let i = 2; i < rows.length; i++) {
+    const r = rows[i]; if (!r[0]) continue;
+    const saldo = parseFloat(r[4]) || 0, mes = parseInt(r[8]) || 0, anio = parseInt(r[9]) || 0;
+    if (!mes || !anio) continue;
+    transactions.push({cc:r[0]||'',detalle:r[2]||'',medio:r[3]||'',saldo,estado:r[6]||'Contable',imprevisto:r[7]==='Imprevisto',mes,anio,estructura:r[10]||'',agrupador:r[11]||''});
   }
 }
 
-async function appendRow(row){
-  if(!fileId){showToast('Sin conexión OneDrive');return false;}
-  setSS('syncing','Guardando…');
-  try{
-    const ur=await gf('https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Base/usedRange');
-    const ud=await ur.json();
-    const nr=ud.rowCount+1;
-    const pr=await gf('https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Base/range(address=\'A'+nr+':L'+nr+'\')',{method:'PATCH',body:JSON.stringify({values:[row]})});
-    if(!pr.ok)throw new Error('write');
-    setSS('ok','Guardado · '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
+async function appendRow(row) {
+  if (!fileId) { showToast('Sin conexión OneDrive'); return false; }
+  setSS('syncing', 'Guardando…');
+  try {
+    const ur = await gf('https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/usedRange');
+    const ud = await ur.json();
+    const nr = ud.rowCount + 1;
+    const pr = await gf(
+      'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/range(address=\'A' + nr + ':L' + nr + '\')',
+      { method: 'PATCH', body: JSON.stringify({ values: [row] }) }
+    );
+    if (!pr.ok) throw new Error('write');
+    setSS('ok', 'Guardado · ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
     return true;
-  }catch(e){setSS('err','Error al guardar');return false;}
+  } catch(e) { setSS('err', 'Error al guardar'); return false; }
 }
 
+// ── UI HELPERS ────────────────────────────────────────────────────────────────
 function fmt(n){return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);}
 function fmtK(n){if(Math.abs(n)>=1000000)return'$'+(n/1000000).toFixed(1)+'M';if(Math.abs(n)>=1000)return'$'+(n/1000).toFixed(0)+'K';return'$'+Math.round(n);}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
@@ -338,11 +463,7 @@ function showScreen(id){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
   document.getElementById('nav-'+id).classList.add('active');
-  if(id==='home')renderDash();
-  if(id==='eerr')renderEERR();
-  if(id==='proj')renderProj();
-  if(id==='nuevo')renderNuevo();
-  if(id==='params')renderParams();
+  if(id==='home')renderDash();if(id==='eerr')renderEERR();if(id==='proj')renderProj();if(id==='nuevo')renderNuevo();if(id==='params')renderParams();
 }
 
 function od(off){const d=new Date(2025,off,1);return{mes:d.getMonth()+1,anio:d.getFullYear(),label:MONTHS[d.getMonth()]+' '+d.getFullYear()};}
@@ -358,36 +479,21 @@ function renderDash(){
   const egr=tx.filter(t=>['3. Gtos Fijos','4. Gtos Variables','5. Gtos Financieros'].includes(t.estructura)).reduce((s,t)=>s+t.saldo,0);
   const si=tx.find(t=>t.estructura==='1. Saldo Inicial');
   const fl=ing+egr;
-  document.getElementById('dash-metrics').innerHTML=`
-    <div class="metric"><div class="ml">Ingresos</div><div class="mv pos">${fmtK(ing)}</div></div>
-    <div class="metric"><div class="ml">Egresos</div><div class="mv neg">${fmtK(Math.abs(egr))}</div></div>
-    <div class="metric"><div class="ml">Flujo neto</div><div class="mv ${fl>=0?'pos':'neg'}">${fmtK(fl)}</div></div>
-    <div class="metric"><div class="ml">Saldo inicial</div><div class="mv">${si?fmtK(si.saldo):'—'}</div></div>`;
+  document.getElementById('dash-metrics').innerHTML=`<div class="metric"><div class="ml">Ingresos</div><div class="mv pos">${fmtK(ing)}</div></div><div class="metric"><div class="ml">Egresos</div><div class="mv neg">${fmtK(Math.abs(egr))}</div></div><div class="metric"><div class="ml">Flujo neto</div><div class="mv ${fl>=0?'pos':'neg'}">${fmtK(fl)}</div></div><div class="metric"><div class="ml">Saldo inicial</div><div class="mv">${si?fmtK(si.saldo):'—'}</div></div>`;
   const sh=tx.filter(t=>t.estructura!=='1. Saldo Inicial');
   if(!sh.length){document.getElementById('dash-txlist').innerHTML='<div class="empty"><i class="ti ti-inbox"></i><p>Sin movimientos este mes</p></div>';return;}
-  document.getElementById('dash-txlist').innerHTML=sh.slice(0,30).map(t=>`
-    <div class="tx-item">
-      <div class="tx-icon ${t.estructura==='2. Ingresos'?'ing':'egr'}"><i class="ti ${t.estructura==='2. Ingresos'?'ti-arrow-up-right':'ti-arrow-down-right'}"></i></div>
-      <div class="tx-body">
-        <div class="tx-name">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div>
-        <div class="tx-meta">${t.agrupador}${t.detalle?' · '+t.detalle:''}</div>
-      </div>
-      <div class="tx-amount ${t.saldo>=0?'pos':'neg'}">${fmtK(t.saldo)}</div>
-    </div>`).join('');
+  document.getElementById('dash-txlist').innerHTML=sh.slice(0,30).map(t=>`<div class="tx-item"><div class="tx-icon ${t.estructura==='2. Ingresos'?'ing':'egr'}"><i class="ti ${t.estructura==='2. Ingresos'?'ti-arrow-up-right':'ti-arrow-down-right'}"></i></div><div class="tx-body"><div class="tx-name">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div><div class="tx-meta">${t.agrupador}${t.detalle?' · '+t.detalle:''}</div></div><div class="tx-amount ${t.saldo>=0?'pos':'neg'}">${fmtK(t.saldo)}</div></div>`).join('');
 }
 
 function renderEERR(){
   const{mes,anio,label}=od(eerrOff);
   document.getElementById('eerr-month').textContent=label;
-  const tx=getTx(mes,anio);
-  let html='',tot=0;
+  const tx=getTx(mes,anio);let html='',tot=0;
   for(const g of GRUPOS){
     const it=tx.filter(t=>t.estructura===g);if(!it.length)continue;
     html+='<div class="eerr-gh">'+GL[g]+'</div>';
     const sub=it.reduce((s,t)=>s+t.saldo,0);
-    for(const t of it){
-      html+='<div class="eerr-row '+(t.estado==='Proyectado'?'proj':'')+'"><span>'+t.cc+(t.imprevisto?'<span class="badge imp">imp</span>':'')+(t.estado==='Proyectado'?'<span class="badge proy">proy</span>':'')+'</span><span class="amt '+(t.saldo>=0?'pos':'neg')+'">'+fmt(t.saldo)+'</span></div>';
-    }
+    for(const t of it)html+='<div class="eerr-row '+(t.estado==='Proyectado'?'proj':'')+'"><span>'+t.cc+(t.imprevisto?'<span class="badge imp">imp</span>':'')+(t.estado==='Proyectado'?'<span class="badge proy">proy</span>':'')+'</span><span class="amt '+(t.saldo>=0?'pos':'neg')+'">'+fmt(t.saldo)+'</span></div>';
     if(it.length>1)html+='<div class="eerr-sub"><span>Subtotal</span><span class="amt '+(sub>=0?'pos':'neg')+'">'+fmt(sub)+'</span></div>';
     if(g!=='1. Saldo Inicial')tot+=sub;
   }
@@ -404,26 +510,22 @@ function buildProj(){
   if(lk.length)acum=lk[lk.length-1].saldo;
   for(let i=0;i<12;i++){
     const d=new Date(2025,5+i,1);const m=d.getMonth()+1,a=d.getFullYear();
-    const lbl=MONTHS[m-1].slice(0,3)+' '+a;
     const tx=getTx(m,a);
     let ing=tx.filter(t=>t.estructura==='2. Ingresos').reduce((s,t)=>s+t.saldo,0);
     let egr=tx.filter(t=>['3. Gtos Fijos','4. Gtos Variables','5. Gtos Financieros'].includes(t.estructura)).reduce((s,t)=>s+t.saldo,0);
     const si=tx.find(t=>t.estructura==='1. Saldo Inicial');
-    if(!ing)ing=3500000*getSal(m);
-    if(!egr)egr=-(1600000*(1+getInf(m)));
+    if(!ing)ing=3500000*getSal(m);if(!egr)egr=-(1600000*(1+getInf(m)));
     const fl=ing+egr;
     if(si)acum=si.saldo;else acum+=fl;
-    res.push({lbl,ing,egr:Math.abs(egr),fl,saldo:acum});
+    res.push({lbl:MONTHS[m-1].slice(0,3)+' '+a,ing,egr:Math.abs(egr),fl,saldo:acum});
   }
   return res;
 }
 
 function renderProj(){
-  const p=buildProj();
-  const labels=p.map(x=>x.lbl);
+  const p=buildProj();const labels=p.map(x=>x.lbl);
   const isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const tc=isDark?'#9a9a94':'#6b6b66',gc=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';
-  const bc=isDark?'#f0f0ec':'#1a1a18';
+  const tc=isDark?'#9a9a94':'#6b6b66',gc=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)',bc=isDark?'#f0f0ec':'#1a1a18';
   if(cS){cS.destroy();cS=null;}if(cF){cF.destroy();cF=null;}
   cS=new Chart(document.getElementById('chartSaldo'),{type:'line',data:{labels,datasets:[{data:p.map(x=>Math.round(x.saldo)),borderColor:bc,backgroundColor:'transparent',tension:0.3,borderWidth:2,pointRadius:3,pointBackgroundColor:bc}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v),color:tc,font:{size:10}},grid:{color:gc},border:{display:false}},x:{ticks:{maxRotation:45,color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
   cF=new Chart(document.getElementById('chartFlujo'),{type:'bar',data:{labels,datasets:[{data:p.map(x=>Math.round(x.ing)),backgroundColor:'rgba(26,122,90,0.75)',borderRadius:4,borderSkipped:false},{data:p.map(x=>-Math.round(x.egr)),backgroundColor:'rgba(192,57,43,0.75)',borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtK(v),color:tc,font:{size:10}},grid:{color:gc},border:{display:false}},x:{ticks:{maxRotation:45,color:tc,font:{size:10}},grid:{display:false},border:{display:false}}}}});
@@ -458,9 +560,7 @@ async function guardarMovimiento(){
   btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i>Guardar en OneDrive';
   if(ok){
     transactions.push({cc,saldo,mes:m,anio:a,estado,medio,detalle,estructura,agrupador});
-    document.getElementById('f-importe').value='';
-    document.getElementById('f-medio').value='';
-    document.getElementById('f-detalle').value='';
+    document.getElementById('f-importe').value='';document.getElementById('f-medio').value='';document.getElementById('f-detalle').value='';
     showToast('Guardado en OneDrive ✓');
   }
 }
@@ -479,15 +579,34 @@ function renderUserPill(){
 }
 function renderAll(){renderDash();renderUserPill();}
 
-async function init(){
-  const fromR=handleRedirect(),hasT=fromR||loadToken();
-  if(!hasT){document.getElementById('loginScreen').style.display='flex';return;}
-  document.getElementById('loginScreen').style.display='none';
-  document.getElementById('appScreens').style.display='block';
-  document.getElementById('appNav').style.display='flex';
-  try{await fetchUser();}catch(e){clearAuth();return;}
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function init() {
+  // 1. Check for auth code in URL (coming back from Microsoft login)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('code')) {
+    const ok = await handleCodeRedirect();
+    if (!ok) return;
+  }
+
+  // 2. Check for stored valid token
+  if (!token && !loadToken()) {
+    // 3. Try refresh token
+    const refreshed = await refreshToken();
+    if (!refreshed) {
+      document.getElementById('loginScreen').style.display = 'flex';
+      return;
+    }
+  }
+
+  // 4. Show app
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreens').style.display = 'block';
+  document.getElementById('appNav').style.display = 'flex';
+
+  try { await fetchUser(); } catch(e) { if (e.message === 'auth') { clearAuth(); return; } }
   await loadExcel();
 }
+
 init();
 </script>
 </body>
