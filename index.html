@@ -311,6 +311,7 @@ let token = null, userData = null, transactions = [];
 let params = {infQ1:3.5,infQ2:3.0,infQ3:2.5,infQ4:2.5,salS1:25,salS2:20};
 const _now=new Date();const _initOff=(_now.getFullYear()-2025)*12+_now.getMonth();
 let dashOff = _initOff, eerrOff = _initOff, cS = null, cF = null, fileId = null;
+let lastKnownRow = 0; // tracks last written Excel row — incremented locally after each save
 
 // ── PKCE HELPERS ──────────────────────────────────────────────────────────────
 function base64url(buffer) {
@@ -486,6 +487,8 @@ async function loadExcel() {
     if (!rr.ok) { setSS('err','Error de lectura'); return; }
     const d = await rr.json();
     parseRows(d.values);
+    // Set lastKnownRow to the highest ri found in parsed transactions
+    lastKnownRow = transactions.reduce((max,t)=>t.ri>max?t.ri:max, 0);
     const ts = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
     setSS('ok', 'Sincronizado · ' + ts);
     document.getElementById('sync-label').textContent = 'Actualizado a las ' + ts;
@@ -511,30 +514,15 @@ async function appendRow(row) {
   if (!fileId) { showToast('Sin conexión OneDrive'); return false; }
   setSS('syncing', 'Guardando…');
   try {
-    // Use column A to find last row with data — more reliable than usedRange.rowCount
-    // Get the last cell in column A that has data
-    const colR = await gf(
-      'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
-      '/workbook/worksheets/Base/range(address=\'A:A\')/usedRange'
-    );
-    let nextRow;
-    if (colR.ok) {
-      const colD = await colR.json();
-      // rowCount of column A used range = last row with data in col A
-      nextRow = (colD.rowCount || 0) + 1;
-    } else {
-      // Fallback: use sheet usedRange rowCount
-      const ur = await gf('https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/usedRange');
-      const ud = await ur.json();
-      nextRow = (ud.rowCount || 0) + 1;
-    }
-
+    // Use local counter — avoids API lag causing duplicate row overwrites
+    const nextRow = lastKnownRow + 1;
     const pr = await gf(
       'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
       '/workbook/worksheets/Base/range(address=\'A' + nextRow + ':L' + nextRow + '\')',
       { method: 'PATCH', body: JSON.stringify({ values: [row] }) }
     );
     if (!pr.ok) throw new Error('write');
+    lastKnownRow = nextRow; // increment only after confirmed write
     setSS('ok', 'Guardado · ' + new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}));
     return nextRow;
   } catch(e) {
