@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="MisFinanzas">
+<meta name="apple-mobile-web-app-title" content="Mis Finanzas">
 <meta name="theme-color" content="#ffffff">
-<title>MisFinanzas</title>
+<title>Mis Finanzas</title>
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,7 +66,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 .chart-legend{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;}
 .chart-legend span{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px;}
 .chart-legend span::before{content:'';width:8px;height:8px;border-radius:2px;display:inline-block;}
-.l-green::before{background:var(--green)!important;}.l-red::before{background:var(--red)!important;}.l-dark::before{background:var(--text)!important;}
+.l-green::before{background:var(--green)!important;}.l-red::before{background:var(--red)!important;}.l-dark::before{background:var(--text)!important;}.l-gold::before{background:rgba(212,175,55,1)!important;}
 .params-wrap{padding:0 16px 20px;}
 .param-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
 .param-card-title{font-size:14px;font-weight:500;margin-bottom:14px;}
@@ -98,7 +98,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 .btn-ms:hover{background:var(--surface2);}
 .login-note{font-size:13px;color:var(--text3);margin-top:20px;text-align:center;max-width:280px;line-height:1.6;}
 .login-error{font-size:14px;color:var(--red);margin-top:16px;text-align:center;max-width:300px;line-height:1.5;display:none;}
-.sync-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);padding:0 16px 12px;}
+.sync-status{display:none;align-items:center;gap:6px;font-size:12px;color:var(--text3);padding:0 16px 12px;}
 .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);}
 .sync-dot.ok{background:var(--green);}.sync-dot.err{background:var(--red);}
 .sync-dot.syncing{background:var(--amber);animation:pulse 1s ease-in-out infinite;}
@@ -116,16 +116,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 
 /* DASH SUMMARY BAR */
 .dash-summary{display:flex;align-items:stretch;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin:0 16px 20px;overflow:hidden;}
-.dash-sum-item{flex:1;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;}
-.dash-sum-divider{width:1px;background:var(--border);margin:12px 0;}
-.dash-sum-label{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;}
-.dash-sum-value{font-family:var(--mono);font-size:16px;font-weight:500;}
+.dash-sum-item{flex:1;min-width:0;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.dash-sum-divider{width:1px;flex-shrink:0;background:var(--border);margin:10px 0;}
+.dash-sum-label{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:0.04em;text-transform:uppercase;white-space:nowrap;}
+.dash-sum-value{font-family:var(--mono);font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;}
 .dash-sum-value.pos{color:var(--green);}.dash-sum-value.neg{color:var(--red);}
 
 /* PERIOD NAV */
 .period-nav{padding:0 16px 16px;}
-.period-year-row{margin-bottom:10px;}
-.period-year-sel{height:34px;padding:0 10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--mono);font-size:14px;font-weight:500;-webkit-appearance:none;outline:none;cursor:pointer;}
+.period-year-row{margin-bottom:10px;display:flex;gap:6px;}
+.period-year-btn{height:34px;padding:0 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:var(--mono);font-size:14px;font-weight:500;cursor:pointer;transition:all 0.15s;}
+.period-year-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);}
 .period-months{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px;}
 .period-months::-webkit-scrollbar{display:none;}
 .period-month-btn{flex-shrink:0;width:34px;height:34px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
@@ -173,7 +174,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 <body>
 
 <div class="login-screen" id="loginScreen">
-  <div class="login-logo">MisFinanzas</div>
+  <div class="login-logo">Mis Finanzas</div>
   <div class="login-sub">Conectá tu OneDrive para sincronizar<br>tu planilla Base.xlsx</div>
   <button class="btn-ms" id="btnLogin" onclick="loginMicrosoft()">
     <svg width="20" height="20" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
@@ -186,14 +187,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 <div class="screens" id="appScreens" style="display:none">
   <div class="screen active" id="screen-home">
     <div class="header">
-      <div><div class="header-title">MisFinanzas</div><div class="header-sub" id="sync-label">Cargando…</div></div>
+      <div><div class="header-title">Mis Finanzas</div></div>
       <div id="user-pill"></div>
     </div>
-    <div class="sync-status"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">Conectando…</span></div>
     <div class="period-nav" id="period-nav-home">
-      <div class="period-year-row">
-        <select class="period-year-sel" id="dash-year-sel" onchange="onDashYearChange(this.value)"></select>
-      </div>
+      <div class="period-year-row" id="dash-year-row"></div>
       <div class="period-months" id="dash-months-row"></div>
     </div>
     <div class="metrics" id="dash-metrics"></div>
@@ -205,9 +203,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
   <div class="screen" id="screen-eerr">
     <div class="header"><div class="header-title">Balance</div></div>
     <div class="period-nav" id="period-nav-eerr">
-      <div class="period-year-row">
-        <select class="period-year-sel" id="eerr-year-sel" onchange="onEERRYearChange(this.value)"></select>
-      </div>
+      <div class="period-year-row" id="eerr-year-row"></div>
       <div class="period-months" id="eerr-months-row"></div>
     </div>
     <div class="eerr-wrap" id="eerr-body"></div>
@@ -219,14 +215,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
       <div class="chart-title">Saldo proyectado — 12 meses</div>
       <div class="chart-box">
         <div class="chart-wrap"><canvas id="chartSaldo" role="img" aria-label="Saldo proyectado 12 meses"></canvas></div>
-        <div class="chart-legend"><span class="l-dark">Saldo acumulado</span></div>
+        <div class="chart-legend"><span class="l-dark">Saldo acumulado</span><span class="l-gold">Mes actual</span></div>
       </div>
     </div>
     <div class="chart-section">
       <div class="chart-title">Flujo mensual</div>
       <div class="chart-box">
         <div class="chart-wrap"><canvas id="chartFlujo" role="img" aria-label="Flujo mensual"></canvas></div>
-        <div class="chart-legend"><span class="l-green">Ingresos</span><span class="l-red">Egresos</span></div>
+        <div class="chart-legend"><span class="l-green">Ingresos</span><span class="l-red">Egresos</span><span class="l-gold">Mes actual</span></div>
       </div>
     </div>
     <div style="height:20px"></div>
@@ -537,7 +533,6 @@ async function loadExcel() {
 
     const ts = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
     setSS('ok', 'Sincronizado · ' + ts);
-    document.getElementById('sync-label').textContent = 'Actualizado a las ' + ts;
     loadP(); renderAll();
     showToast('Datos cargados desde OneDrive');
   } catch(e) {
@@ -605,7 +600,7 @@ async function appendRow(row) {
 function fmt(n){return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n));}
 function fmtK(n){if(Math.abs(n)>=1000000)return'$'+(n/1000000).toFixed(1)+'M';if(Math.abs(n)>=1000)return'$'+(n/1000).toFixed(0)+'K';return'$'+Math.round(n);}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
-function setSS(st,tx){document.getElementById('sync-dot').className='sync-dot '+st;document.getElementById('sync-text').textContent=tx;}
+function setSS(st,tx){/* sync display removed */}
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -625,12 +620,11 @@ const YEARS=[2025,2026];
 function renderPeriodNav(screenId, currentOff, onYearChange, onMonthClick){
   const d = new Date(2025, currentOff, 1);
   const curYear = d.getFullYear();
-  const curMonth = d.getMonth(); // 0-based
+  const curMonth = d.getMonth();
 
-  const yrSel = document.getElementById(screenId+'-year-sel');
-  if(yrSel){
-    yrSel.innerHTML = YEARS.map(y=>`<option value="${y}"${y===curYear?' selected':''}>${y}</option>`).join('');
-    yrSel.onchange = e => onYearChange(parseInt(e.target.value));
+  const yrRow = document.getElementById(screenId+'-year-row');
+  if(yrRow){
+    yrRow.innerHTML = YEARS.map(y=>`<button class="period-year-btn${y===curYear?' active':''}" onclick="${onYearChange.name||onYearChange}(${y})">${y}</button>`).join('');
   }
 
   const mRow = document.getElementById(screenId+'-months-row');
@@ -667,7 +661,7 @@ function getTx(m,a){return transactions.filter(t=>t.mes===m&&t.anio===a);}
 
 function renderDash(){
   const{mes,anio,label}=od(dashOff);
-  renderPeriodNav('dash', dashOff, onDashYearChange, 'onDashMonthClick');
+  renderPeriodNav('dash', dashOff, 'onDashYearChange', 'onDashMonthClick');
   const tx=getTx(mes,anio);
   const ing=tx.filter(t=>t.estructura==='2. Ingresos').reduce((s,t)=>s+t.saldo,0);
   const egr=tx.filter(t=>['3. Gtos Fijos','4. Gtos Variables','5. Gtos Financieros'].includes(t.estructura)).reduce((s,t)=>s+t.saldo,0);
@@ -684,7 +678,7 @@ function renderDash(){
       <div class="dash-sum-divider"></div>
       <div class="dash-sum-item">
         <div class="dash-sum-label">Egresos</div>
-        <div class="dash-sum-value neg">${fmt(Math.abs(egr))}</div>
+        <div class="dash-sum-value neg">-${fmt(Math.abs(egr))}</div>
       </div>
       <div class="dash-sum-divider"></div>
       <div class="dash-sum-item">
@@ -714,7 +708,7 @@ const eerrExpanded = new Set();
 
 function renderEERR(){
   const{mes,anio,label}=od(eerrOff);
-  renderPeriodNav('eerr', eerrOff, onEERRYearChange, 'onEERRMonthClick');
+  renderPeriodNav('eerr', eerrOff, 'onEERRYearChange', 'onEERRMonthClick');
   const tx=getTx(mes,anio);
   let html='', tot=0;
 
