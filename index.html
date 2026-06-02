@@ -540,8 +540,8 @@ function showScreen(id){
 }
 
 function od(off){const d=new Date(2025,off,1);return{mes:d.getMonth()+1,anio:d.getFullYear(),label:MONTHS[d.getMonth()]+' '+d.getFullYear()};}
-function changeMonth(d){dashOff+=d;renderDash();}
-function changeMonthEERR(d){eerrOff+=d;renderEERR();}
+function changeMonth(d){dashOff+=parseInt(d);renderDash();}
+function changeMonthEERR(d){eerrOff+=parseInt(d);renderEERR();}
 function getTx(m,a){return transactions.filter(t=>t.mes===m&&t.anio===a);}
 
 function renderDash(){
