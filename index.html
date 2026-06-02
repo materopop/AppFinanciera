@@ -717,7 +717,7 @@ function renderEERR(){
 function toggleAcc(key){
   if(eerrExpanded.has(key)) eerrExpanded.delete(key);
   else eerrExpanded.add(key);
-  renderEERR();renderDash();
+  renderEERR();
 }
 
 // ── SWIPE ─────────────────────────────────────────────────────────────────────
@@ -748,6 +748,7 @@ function initSwipeDash(){
     if(!e.target.closest('.sw-wrap'))closeAllSwipe();
   },{passive:true});
 }
+function initSwipe(){
   document.querySelectorAll('.sw-wrap').forEach(wrap=>{
     const content=wrap.querySelector('.sw-content');
     let startX=0,startY=0,dx=0,dragging=false,locked=false;
@@ -793,7 +794,8 @@ let pendingDeleteIdx = null;
 function openDelete(idx){
   closeAllSwipe();
   pendingDeleteIdx=idx;
-  const t=transactions[idx];
+  const t=transactions.find(t=>t.id===idx);
+  if(!t)return;
   document.getElementById('modalDelSub').textContent='¿Confirmás eliminar "'+t.cc+'" ('+fmt(t.saldo)+')? Esta acción no se puede deshacer.';
   document.getElementById('btnConfirmDel').disabled=false;
   document.getElementById('btnConfirmDel').innerHTML='<i class="ti ti-trash"></i>Eliminar';
