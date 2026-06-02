@@ -111,6 +111,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15
 .user-name{font-size:12px;font-weight:500;}
 .btn-logout{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px;margin-left:2px;}
 
+/* ACCORDION */
+.acc-header{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:default;}
+.acc-header.clickable{cursor:pointer;}
+.acc-header.clickable:active{background:var(--surface2);margin:0 -16px;padding:10px 16px;}
+.acc-header-left{display:flex;align-items:center;gap:4px;flex:1;min-width:0;}
+.acc-chevron{font-size:14px;color:var(--text3);flex-shrink:0;transition:transform 0.2s;}
+.acc-label{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.acc-total{font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap;margin-left:8px;}
+.acc-total.pos{color:var(--green);}.acc-total.neg{color:var(--red);}
+
 /* SWIPE ROW */
 .sw-wrap{position:relative;overflow:hidden;border-bottom:1px solid var(--border);}
 .sw-wrap:last-child{border-bottom:none;}
@@ -548,35 +558,78 @@ function renderDash(){
   document.getElementById('dash-txlist').innerHTML=sh.slice(0,30).map(t=>`<div class="tx-item"><div class="tx-icon ${t.estructura==='2. Ingresos'?'ing':'egr'}"><i class="ti ${t.estructura==='2. Ingresos'?'ti-arrow-up-right':'ti-arrow-down-right'}"></i></div><div class="tx-body"><div class="tx-name">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div><div class="tx-meta">${t.agrupador}${t.detalle?' · '+t.detalle:''}</div></div><div class="tx-amount ${t.saldo>=0?'pos':'neg'}">${fmtK(t.saldo)}</div></div>`).join('');
 }
 
+// Track which agrupadores are expanded: key = "estructura||agrupador"
+const eerrExpanded = new Set();
+
 function renderEERR(){
   const{mes,anio,label}=od(eerrOff);
   document.getElementById('eerr-month').textContent=label;
-  const tx=getTx(mes,anio);let html='',tot=0;
+  const tx=getTx(mes,anio);
+  let html='', tot=0;
+
   for(const g of GRUPOS){
-    const it=tx.filter(t=>t.estructura===g);if(!it.length)continue;
+    const it=tx.filter(t=>t.estructura===g);
+    if(!it.length) continue;
     html+='<div class="eerr-gh">'+GL[g]+'</div>';
-    const sub=it.reduce((s,t)=>s+t.saldo,0);
-    for(const t of it){
-      const idx=transactions.indexOf(t);
-      const proj=t.estado==='Proyectado';
-      html+=`<div class="sw-wrap" data-idx="${idx}">
-        <div class="sw-actions right"><button class="sw-btn edit" onclick="openEdit(${idx})">Editar</button></div>
-        <div class="sw-actions left"><button class="sw-btn del" onclick="openDelete(${idx})">Eliminar</button></div>
-        <div class="sw-content ${proj?'proj':''}">
-          <div class="tx-body" style="flex:1;min-width:0">
-            <div class="tx-name">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${proj?'<span class="badge proy">proy</span>':''}</div>
-            <div class="tx-meta">${t.agrupador}${t.detalle?' · '+t.detalle:''}</div>
-          </div>
-          <div class="tx-amount ${t.saldo>=0?'pos':'neg'}" style="font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap">${fmt(t.saldo)}</div>
+    const gSub=it.reduce((s,t)=>s+t.saldo,0);
+
+    // Group by agrupador within this estructura
+    const agrupadores=[...new Set(it.map(t=>t.agrupador||'—'))];
+
+    for(const agr of agrupadores){
+      const aItems=it.filter(t=>(t.agrupador||'—')===agr);
+      const aKey=g+'||'+agr;
+      const aTotal=aItems.reduce((s,t)=>s+t.saldo,0);
+      const isOpen=eerrExpanded.has(aKey);
+      const hasMultiple=aItems.length>1;
+
+      // Agrupador header row (always visible, clickable if has multiple)
+      html+=`<div class="acc-header ${hasMultiple?'clickable':''}" onclick="${hasMultiple?'toggleAcc(\''+aKey+'\')':''}">
+        <div class="acc-header-left">
+          ${hasMultiple?`<i class="ti ${isOpen?'ti-chevron-down':'ti-chevron-right'} acc-chevron"></i>`:'<span style="width:18px;display:inline-block"></span>'}
+          <span class="acc-label">${agr}</span>
+          ${aItems.some(t=>t.imprevisto)?'<span class="badge imp">imp</span>':''}
+          ${aItems.some(t=>t.estado==='Proyectado')&&!isOpen?'<span class="badge proy">proy</span>':''}
         </div>
+        <span class="acc-total ${aTotal>=0?'pos':'neg'}">${fmt(aTotal)}</span>
       </div>`;
+
+      // Items inside agrupador (collapsed by default if multiple)
+      if(!hasMultiple || isOpen){
+        for(const t of aItems){
+          const idx=transactions.indexOf(t);
+          const proj=t.estado==='Proyectado';
+          html+=`<div class="sw-wrap" data-idx="${idx}">
+            <div class="sw-actions right"><button class="sw-btn edit" onclick="openEdit(${idx})">Editar</button></div>
+            <div class="sw-actions left"><button class="sw-btn del" onclick="openDelete(${idx})">Eliminar</button></div>
+            <div class="sw-content">
+              <div class="tx-body" style="flex:1;min-width:0;padding-left:26px">
+                <div class="tx-name" style="font-size:13px;font-weight:400">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${proj?'<span class="badge proy">proy</span>':''}</div>
+                ${t.detalle?`<div class="tx-meta">${t.detalle}</div>`:''}
+              </div>
+              <div class="tx-amount ${t.saldo>=0?'pos':'neg'}" style="font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap">${fmt(t.saldo)}</div>
+            </div>
+          </div>`;
+        }
+      }
     }
-    if(it.length>1)html+='<div class="eerr-sub"><span>Subtotal</span><span class="amt '+(sub>=0?'pos':'neg')+'">'+fmt(sub)+'</span></div>';
-    if(g!=='1. Saldo Inicial')tot+=sub;
+
+    // Group subtotal
+    if(agrupadores.length>1){
+      html+='<div class="eerr-sub"><span>Subtotal '+GL[g]+'</span><span class="amt '+(gSub>=0?'pos':'neg')+'">'+fmt(gSub)+'</span></div>';
+    }
+    if(g!=='1. Saldo Inicial') tot+=gSub;
   }
+
   html+='<div class="eerr-total"><span>Resultado del mes</span><span class="amt">'+fmt(tot)+'</span></div>';
   document.getElementById('eerr-body').innerHTML=html;
   initSwipe();
+}
+
+function toggleAcc(key){
+  if(eerrExpanded.has(key)) eerrExpanded.delete(key);
+  else eerrExpanded.add(key);
+  renderEERR();
 }
 
 // ── SWIPE ─────────────────────────────────────────────────────────────────────
