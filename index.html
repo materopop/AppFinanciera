@@ -486,9 +486,15 @@ async function loadExcel() {
     const rr = await gf('https://graph.microsoft.com/v1.0/me/drive/items/' + fileId + '/workbook/worksheets/Base/usedRange');
     if (!rr.ok) { setSS('err','Error de lectura'); return; }
     const d = await rr.json();
-    parseRows(d.values);
-    // Set lastKnownRow to the highest ri found in parsed transactions
-    lastKnownRow = transactions.reduce((max,t)=>t.ri>max?t.ri:max, 0);
+    // lastKnownRow from rowCount is always reliable — use as primary source
+    lastKnownRow = d.rowCount || 0;
+    if (d.values) {
+      parseRows(d.values);
+      // Override with highest ri found if we successfully parsed rows
+      const riMax = transactions.reduce((max,t)=>t.ri>max?t.ri:max, 0);
+      if (riMax > 0) lastKnownRow = riMax;
+    }
+    console.log('[loadExcel] lastKnownRow set to', lastKnownRow);
     const ts = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
     setSS('ok', 'Sincronizado · ' + ts);
     document.getElementById('sync-label').textContent = 'Actualizado a las ' + ts;
@@ -516,6 +522,7 @@ async function appendRow(row) {
   try {
     // Use local counter — avoids API lag causing duplicate row overwrites
     const nextRow = lastKnownRow + 1;
+    console.log('[appendRow] lastKnownRow='+lastKnownRow+' → writing to row '+nextRow);
     const pr = await gf(
       'https://graph.microsoft.com/v1.0/me/drive/items/' + fileId +
       '/workbook/worksheets/Base/range(address=\'A' + nextRow + ':L' + nextRow + '\')',
