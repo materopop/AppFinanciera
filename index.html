@@ -117,14 +117,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 /* DASH SUMMARY BAR */
 .dash-summary{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin:0 16px 20px;overflow:hidden;}
 .dash-sum-row{display:flex;align-items:stretch;}
-.dash-sum-item{flex:1;min-width:0;padding:12px 14px;display:flex;flex-direction:column;gap:5px;}
+.dash-sum-item{flex:1;min-width:0;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;}
 .dash-sum-item.bordered{border-left:1px solid var(--border);}
-.dash-sum-divider-h{height:1px;background:var(--border);margin:0;}
-.dash-sum-result{padding:12px 14px;display:flex;justify-content:space-between;align-items:baseline;}
-.dash-sum-label{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:0.04em;text-transform:uppercase;}
-.dash-sum-value{font-family:var(--mono);font-size:16px;font-weight:500;white-space:nowrap;}
+.dash-sum-divider-h{height:1px;background:var(--border);}
+.dash-sum-result{padding:12px 16px;display:flex;justify-content:space-between;align-items:baseline;}
+.dash-sum-label{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;white-space:nowrap;}
+.dash-sum-value{font-family:var(--mono);font-size:15px;font-weight:500;white-space:nowrap;text-align:center;}
 .dash-sum-value.pos{color:var(--green);}.dash-sum-value.neg{color:var(--red);}
-.dash-result-label{font-size:13px;font-weight:500;color:var(--text2);}
+.dash-result-label{font-size:14px;font-weight:500;color:var(--text2);}
 .dash-result-value{font-family:var(--mono);font-size:18px;font-weight:500;}
 
 /* PERIOD NAV */
@@ -199,7 +199,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
       <div class="period-year-row" id="dash-year-row"></div>
       <div class="period-months" id="dash-months-row"></div>
     </div>
-    <div class="metrics" id="dash-metrics"></div>
+    <div id="dash-metrics"></div>
     <div class="section-head">Movimientos del mes</div>
     <div class="tx-list" id="dash-txlist"></div>
     <div style="height:20px"></div>
