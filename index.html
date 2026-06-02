@@ -220,10 +220,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:15
       <div class="fg"><label>Cuenta contable</label><select id="f-cuenta"></select></div>
       <div class="fg"><label>Importe ($)</label><input type="number" id="f-importe" placeholder="0" inputmode="decimal" min="0" step="0.01"></div>
       <div class="fg"><label>Mes</label><select id="f-mes"></select></div>
-      <div class="fg"><label>Estado</label><select id="f-estado"><option value="Contable">Contable — dato real</option><option value="Proyectado">Proyectado — estimado</option></select></div>
-      <div class="fg"><label>Medio de pago (opcional)</label><input type="text" id="f-medio" placeholder="Visa Galicia, efectivo…"></div>
+      <div class="fg"><label>Medio de pago (opcional)</label><select id="f-medio"><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option></select></div>
       <div class="fg"><label>Detalle (opcional)</label><textarea id="f-detalle" placeholder="Descripción…"></textarea></div>
-      <button class="btn-submit" id="btn-guardar" onclick="guardarMovimiento()"><i class="ti ti-device-floppy"></i>Guardar en OneDrive</button>
+      <button class="btn-submit" id="btn-guardar" onclick="guardarMovimiento()"><i class="ti ti-device-floppy"></i>Guardar</button>
     </div>
   </div>
 
@@ -311,7 +310,8 @@ const CI = ['Sueldo Mate','Sueldo Vicky','Aguinaldo Mate','Alquiler cobrado','Ot
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let token = null, userData = null, transactions = [];
 let params = {infQ1:3.5,infQ2:3.0,infQ3:2.5,infQ4:2.5,salS1:25,salS2:20};
-let dashOff = 0, eerrOff = 0, cS = null, cF = null, fileId = null;
+const _now=new Date();const _initOff=(_now.getFullYear()-2025)*12+_now.getMonth();
+let dashOff = _initOff, eerrOff = _initOff, cS = null, cF = null, fileId = null;
 
 // ── PKCE HELPERS ──────────────────────────────────────────────────────────────
 function base64url(buffer) {
@@ -536,7 +536,7 @@ function showScreen(id){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
   document.getElementById('nav-'+id).classList.add('active');
-  if(id==='home')renderDash();if(id==='eerr')renderEERR();if(id==='proj')renderProj();if(id==='nuevo')renderNuevo();if(id==='params')renderParams();
+  if(id==='home')renderDash();if(id==='eerr')renderEERR();if(id==='proj')renderProj();if(id==='nuevo')renderNuevo(false);if(id==='params')renderParams();
 }
 
 function od(off){const d=new Date(2025,off,1);return{mes:d.getMonth()+1,anio:d.getFullYear(),label:MONTHS[d.getMonth()]+' '+d.getFullYear()};}
@@ -872,13 +872,24 @@ function renderProj(){
   document.getElementById('proj-assumptions').innerHTML='<strong>Supuestos activos</strong><br>Inflación mensual: Q1 '+params.infQ1+'% · Q2 '+params.infQ2+'% · Q3 '+params.infQ3+'% · Q4 '+params.infQ4+'%<br>Paritaria: H1 +'+params.salS1+'% · H2 +'+params.salS2+'%';
 }
 
-function renderNuevo(){
+function renderNuevo(resetForm){
   const tipo=document.getElementById('btn-egr').classList.contains('active')?'egreso':'ingreso';
   document.getElementById('f-cuenta').innerHTML=(tipo==='ingreso'?CI:CE).map(c=>'<option value="'+c+'">'+c+'</option>').join('');
-  const ms=document.getElementById('f-mes');ms.innerHTML='';
-  for(let a=2025;a<=2026;a++)for(let m=1;m<=12;m++)ms.innerHTML+='<option value="'+m+'|'+a+'">'+MONTHS[m-1]+' '+a+'</option>';
+  const ms=document.getElementById('f-mes');
+  const now=new Date();
+  const curVal=(now.getMonth()+1)+'|'+now.getFullYear();
+  ms.innerHTML='';
+  for(let a=2025;a<=2026;a++)for(let m=1;m<=12;m++){
+    const v=m+'|'+a;
+    ms.innerHTML+='<option value="'+v+'"'+(v===curVal?' selected':'')+'>'+MONTHS[m-1]+' '+a+'</option>';
+  }
+  if(resetForm){
+    document.getElementById('f-importe').value='';
+    document.getElementById('f-medio').value='';
+    document.getElementById('f-detalle').value='';
+  }
 }
-function setTipo(t){document.getElementById('btn-egr').classList.toggle('active',t==='egreso');document.getElementById('btn-ing').classList.toggle('active',t==='ingreso');renderNuevo();}
+function setTipo(t){document.getElementById('btn-egr').classList.toggle('active',t==='egreso');document.getElementById('btn-ing').classList.toggle('active',t==='ingreso');renderNuevo(false);}
 
 async function guardarMovimiento(){
   const tipo=document.getElementById('btn-egr').classList.contains('active')?'egreso':'ingreso';
@@ -886,7 +897,7 @@ async function guardarMovimiento(){
   const imp=parseFloat(document.getElementById('f-importe').value)||0;
   if(!imp){showToast('Ingresá un importe');return;}
   const[m,a]=document.getElementById('f-mes').value.split('|').map(Number);
-  const estado=document.getElementById('f-estado').value;
+  const estado='Contable';
   const medio=document.getElementById('f-medio').value;
   const detalle=document.getElementById('f-detalle').value;
   const saldo=tipo==='egreso'?-Math.abs(imp):Math.abs(imp);
@@ -897,10 +908,10 @@ async function guardarMovimiento(){
   const btn=document.getElementById('btn-guardar');
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
   const ok=await appendRow(row);
-  btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i>Guardar en OneDrive';
+  btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i>Guardar';
   if(ok){
     transactions.push({cc,saldo,mes:m,anio:a,estado,medio,detalle,estructura,agrupador});
-    document.getElementById('f-importe').value='';document.getElementById('f-medio').value='';document.getElementById('f-detalle').value='';
+    renderNuevo(true);
     showToast('Guardado en OneDrive ✓');
   }
 }
