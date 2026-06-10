@@ -120,12 +120,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 .params-tab{flex:1;padding:11px 0;font-size:14px;font-weight:500;text-align:center;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--sans);transition:color .15s;}
 .params-tab.active{color:var(--text);border-bottom-color:var(--text);}
 .concepto-row{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border);gap:10px;cursor:pointer;}
+.drag-handle{font-size:18px;color:var(--text3);cursor:grab;touch-action:none;padding:0 2px;flex-shrink:0;}
+.concepto-row.dragging{opacity:0.4;background:var(--surface2);}
+.concepto-row.drag-over{border-top:2px solid var(--text);}
 .concepto-row:last-child{border-bottom:none;}.concepto-row:active{background:var(--surface2);}
 .concepto-name{flex:1;font-size:14px;}.concepto-agr{font-size:12px;color:var(--text2);}
-.ajuste-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;}
+.ajuste-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;}
 .ajuste-row:last-child{border-bottom:none;}
 .ajuste-name{flex:1;font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ajuste-sel,.freq-sel{height:30px;padding:0 6px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--sans);font-size:12px;-webkit-appearance:none;outline:none;cursor:pointer;}
+.ajuste-sel,.freq-sel{height:30px;padding:0 6px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--sans);font-size:12px;-webkit-appearance:none;outline:none;cursor:pointer;text-align:center;}
 
 /* DASH SUMMARY BAR */
 .dash-summary{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin:0 16px 20px;overflow:hidden;}
@@ -182,7 +185,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 .modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 20px;}
 .modal-title{font-size:19px;font-weight:500;letter-spacing:-0.01em;margin-bottom:6px;}
 .modal-sub{font-size:14px;color:var(--text2);margin-bottom:24px;line-height:1.5;}
-.modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;}
+.modal-actions{display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;}
 .btn-cancel{height:46px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);font-family:var(--sans);font-size:15px;font-weight:500;cursor:pointer;color:var(--text);}
 .btn-confirm-del{height:46px;border-radius:var(--radius-sm);border:none;background:var(--red);font-family:var(--sans);font-size:15px;font-weight:500;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;}
 .btn-confirm-del:disabled{opacity:0.4;}
@@ -254,8 +257,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
         <button class="type-btn" id="btn-ing" onclick="setTipo('ingreso')"><i class="ti ti-arrow-up-right"></i>Ingreso</button>
       </div>
       <div class="fg"><label>Concepto</label><select id="f-cuenta"></select></div>
-      <div class="fg"><label>Importe ($)</label><input type="number" id="f-importe" placeholder="0" inputmode="decimal" min="0" step="0.01"></div>
-      <div class="fg"><label>Mes</label><select id="f-mes"></select></div>
+      <div class="fg"><label>Importe ($)</label><input type="text" id="f-importe" placeholder="0" inputmode="decimal" oninput="onImporteInput(this)"></div>
+      <div class="fg"><label>Fecha</label>
+        <div style="display:grid;grid-template-columns:80px 1fr;gap:8px">
+          <select id="f-dia"></select>
+          <select id="f-mes"></select>
+        </div>
+      </div>
       <div class="fg"><label>Medio de pago</label><select id="f-medio"><option value="">— Seleccioná —</option><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option></select></div>
       <div class="fg"><label>Detalle (opcional)</label><textarea id="f-detalle" placeholder="Descripción…"></textarea></div>
       <button class="btn-submit" id="btn-guardar" onclick="guardarMovimiento()"><i class="ti ti-device-floppy"></i>Guardar</button>
@@ -280,22 +288,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
     <!-- TAB AJUSTES -->
     <div id="params-ajustes" style="display:none">
       <div id="params-ajustes-body" style="padding:0 16px"></div>
-      <div style="padding:0 16px 20px">
-        <div class="section-head" style="padding:16px 0 8px">Proyección global</div>
-        <div class="param-card">
-          <div class="param-card-title">Inflación mensual</div>
-          <div class="param-row"><label>Ene–Mar</label><input type="range" min="1" max="20" step="0.5" id="inf-q1" oninput="upParam(this,'inf-q1-v','infQ1')"><span class="pval" id="inf-q1-v"></span></div>
-          <div class="param-row"><label>Abr–Jun</label><input type="range" min="1" max="20" step="0.5" id="inf-q2" oninput="upParam(this,'inf-q2-v','infQ2')"><span class="pval" id="inf-q2-v"></span></div>
-          <div class="param-row"><label>Jul–Sep</label><input type="range" min="1" max="20" step="0.5" id="inf-q3" oninput="upParam(this,'inf-q3-v','infQ3')"><span class="pval" id="inf-q3-v"></span></div>
-          <div class="param-row"><label>Oct–Dic</label><input type="range" min="1" max="20" step="0.5" id="inf-q4" oninput="upParam(this,'inf-q4-v','infQ4')"><span class="pval" id="inf-q4-v"></span></div>
-        </div>
-        <div class="param-card">
-          <div class="param-card-title">Paritaria salarial</div>
-          <div class="param-row"><label>Sem 1 (Ene–Jun)</label><input type="range" min="0" max="80" step="1" id="sal-s1" oninput="upParam(this,'sal-s1-v','salS1')"><span class="pval" id="sal-s1-v"></span></div>
-          <div class="param-row"><label>Sem 2 (Jul–Dic)</label><input type="range" min="0" max="80" step="1" id="sal-s2" oninput="upParam(this,'sal-s2-v','salS2')"><span class="pval" id="sal-s2-v"></span></div>
-        </div>
-        <button class="btn-submit" onclick="showScreen('proj')"><i class="ti ti-refresh"></i>Recalcular proyección</button>
-      </div>
+
     </div>
   </div>
 </div>
@@ -332,8 +325,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
       <button class="type-btn" id="edit-btn-ing" onclick="setEditTipo('ingreso')"><i class="ti ti-arrow-up-right"></i>Ingreso</button>
     </div>
     <div class="fg"><label>Concepto</label><select id="ef-cuenta"></select></div>
-    <div class="fg"><label>Importe ($)</label><input type="number" id="ef-importe" placeholder="0" inputmode="decimal" min="0" step="0.01"></div>
-    <div class="fg"><label>Mes</label><select id="ef-mes"></select></div>
+    <div class="fg"><label>Importe ($)</label><input type="text" id="ef-importe" placeholder="0" inputmode="decimal" oninput="onImporteInput(this)"></div>
+    <div class="fg"><label>Fecha</label>
+      <div style="display:grid;grid-template-columns:80px 1fr;gap:8px">
+        <select id="ef-dia"></select>
+        <select id="ef-mes"></select>
+      </div>
+    </div>
     <div class="fg"><label>Medio de pago</label><select id="ef-medio"><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option></select></div>
     <div class="fg"><label>Detalle</label><textarea id="ef-detalle" placeholder="Descripción…"></textarea></div>
     <div class="modal-actions">
@@ -359,8 +357,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
     </div>
     <div class="fg"><label>Agrupador</label><select id="mc-agrupador"></select></div>
     <div class="modal-actions">
+      <button class="btn-confirm-del" id="btnDeleteConcepto" onclick="deleteConcepto()" style="flex:1"><i class="ti ti-trash"></i>Eliminar</button>
       <button class="btn-cancel" onclick="closeModal('modalConcepto')">Cancelar</button>
-      <button class="btn-submit" style="margin-top:0;height:46px" id="btnSaveConcepto" onclick="saveConcepto()"><i class="ti ti-device-floppy"></i>Guardar</button>
+      <button class="btn-submit" style="margin-top:0;height:46px;flex:1" id="btnSaveConcepto" onclick="saveConcepto()"><i class="ti ti-device-floppy"></i>Guardar</button>
     </div>
   </div>
 </div>
@@ -607,7 +606,7 @@ function parseRows(rows) {
     const r = rows[i]; if (!r[0]) continue;
     const saldo = parseFloat(r[4]) || 0, mes = parseInt(r[8]) || 0, anio = parseInt(r[9]) || 0;
     if (!mes || !anio) continue;
-    transactions.push({id:transactions.length,cc:r[0]||'',detalle:r[2]||'',medio:r[3]||'',saldo,estado:r[6]||'Contable',imprevisto:r[7]==='Imprevisto',mes,anio,estructura:r[10]||'',agrupador:r[11]||'',ri:i+1});
+    transactions.push({id:transactions.length,cc:r[0]||'',detalle:r[2]||'',medio:r[3]||'',saldo,periodo:r[5]||'',estado:r[6]||'Contable',imprevisto:r[7]==='Imprevisto',mes,anio,estructura:r[10]||'',agrupador:r[11]||'',ri:i+1});
   }
 }
 
@@ -659,6 +658,15 @@ async function appendRow(row) {
 // ── UI HELPERS ────────────────────────────────────────────────────────────────
 function fmt(n){return new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(n));}
 function fmtK(n){if(Math.abs(n)>=1000000)return'$'+(n/1000000).toFixed(1)+'M';if(Math.abs(n)>=1000)return'$'+(n/1000).toFixed(0)+'K';return'$'+Math.round(n);}
+function updatePlaceholderClass(sel){if(sel)sel.classList.toggle('placeholder',sel.value===''||sel.value==null);}
+function onImporteInput(el){
+  const raw=el.value.replace(/[^\d]/g,'');
+  if(!raw){el.value='';return;}
+  el.value=new Intl.NumberFormat('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0}).format(parseInt(raw,10));
+}
+function parseImporte(val){
+  return parseFloat(String(val).replace(/\./g,'').replace(',','.'))||0;
+}
 function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
 function setSS(st,tx){/* sync display removed */}
 
@@ -747,14 +755,25 @@ function renderDash(){
     </div>`;
   const sh=tx.filter(t=>t.estructura!=='1. Saldo Inicial');
   if(!sh.length){document.getElementById('dash-txlist').innerHTML='<div class="empty"><i class="ti ti-inbox"></i><p>Sin movimientos este mes</p></div>';return;}
-  document.getElementById('dash-txlist').innerHTML=sh.slice(0,30).map(t=>`
+  const MESES_CORTOS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function fmtFecha(t){
+    // Try to extract day from periodo field
+    try{
+      const d=new Date(t.periodo||'');
+      if(!isNaN(d)) return String(d.getUTCDate()).padStart(2,'0')+'-'+MESES_CORTOS[d.getUTCMonth()];
+    }catch(e){}
+    return String(t.mes).padStart(2,'0')+'-'+MESES_CORTOS[(t.mes||1)-1];
+  }
+  // Reverse to show latest first
+  const reversed=[...sh].reverse().slice(0,30);
+  document.getElementById('dash-txlist').innerHTML=reversed.map(t=>`
     <div class="sw-wrap" data-idx="${t.id}">
       <div class="sw-actions right"><button class="sw-btn edit" onclick="openEdit(${t.id})">Editar</button></div>
       <div class="sw-actions left"><button class="sw-btn del" onclick="openDelete(${t.id})">Eliminar</button></div>
       <div class="sw-content">
         <div class="tx-body" style="flex:1;min-width:0">
           <div class="tx-name">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div>
-          <div class="tx-meta">${t.agrupador}${t.detalle?' · '+t.detalle:''}</div>
+          <div class="tx-meta">${t.agrupador} <span style="color:var(--text2)">(${fmtFecha(t)})</span>${t.detalle?' · '+t.detalle:''}</div>
         </div>
         <div class="tx-amount ${t.saldo>=0?'pos':'neg'}">${fmt(t.saldo)}</div>
       </div>
@@ -1075,7 +1094,7 @@ function openEdit(idx){
 
   const cSel=document.getElementById('ef-cuenta');
   Array.from(cSel.options).forEach(o=>{if(o.value===t.cc)o.selected=true;});
-  document.getElementById('ef-importe').value=Math.abs(t.saldo);
+  document.getElementById('ef-importe').value=Math.abs(t.saldo)>0?new Intl.NumberFormat('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(Math.abs(t.saldo))):'';
   document.getElementById('ef-detalle').value=t.detalle||'';
 
   // Set medio select
@@ -1092,11 +1111,21 @@ function openEdit(idx){
     if(m===t.mes&&a===t.anio)opt.selected=true;
     mSel.appendChild(opt);
   }
+  // Extract day from periodo field if available
+  const periodoDay = t.detalle ? 1 : 1; // default 1
+  const savedDay = (()=>{ try{ const d=new Date(t.periodo||''); return isNaN(d)?1:d.getDate(); }catch(e){return 1;} })();
+  populateDiaSelect('ef-dia', savedDay);
   openModal('modalEdit');
 }
 
 function populateEditCuentas(tipo){
-  document.getElementById('ef-cuenta').innerHTML=(tipo==='ingreso'?CI:CE).map(c=>'<option value="'+c+'">'+c+'</option>').join('');
+  let cuentas;
+  if(conceptos.length){
+    cuentas=conceptos.filter(c=>tipo==='ingreso'?c.estructura==='2. Ingresos':c.estructura!=='2. Ingresos').map(c=>c.concepto);
+  } else {
+    cuentas=tipo==='ingreso'?CI:CE;
+  }
+  document.getElementById('ef-cuenta').innerHTML=cuentas.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
 }
 function setEditTipo(t){
   document.getElementById('edit-btn-egr').classList.toggle('active',t==='egreso');
@@ -1111,7 +1140,7 @@ async function confirmEdit(){
   const t=transactions[tIdx];
   const isIngreso=document.getElementById('edit-btn-ing').classList.contains('active');
   const cc=document.getElementById('ef-cuenta').value;
-  const imp=parseFloat(document.getElementById('ef-importe').value)||0;
+  const imp=parseImporte(document.getElementById('ef-importe').value);
   if(!imp){showToast('Ingresá un importe');return;}
   const[m,a]=document.getElementById('ef-mes').value.split('|').map(Number);
   const estado='Contable';
@@ -1120,7 +1149,8 @@ async function confirmEdit(){
   const saldo=isIngreso?Math.abs(imp):-Math.abs(imp);
   const estructura=isIngreso?'2. Ingresos':t.estructura||'3. Gtos Fijos';
   const agrupador=isIngreso?'1. Ingresos':t.agrupador||'2. Servicios';
-  const periodo=new Date(a,m-1,1).toISOString().split('T')[0];
+  const edia=parseInt(document.getElementById('ef-dia').value)||1;
+  const periodo=new Date(a,m-1,edia).toISOString().split('T')[0];
   const row=[cc,'',detalle,medio,saldo,periodo,estado,t.imprevisto?'Imprevisto':'',m,a,estructura,agrupador];
 
   const btn=document.getElementById('btnConfirmEdit');
@@ -1225,6 +1255,14 @@ function renderProj(){
   document.getElementById('proj-assumptions').innerHTML='<strong>Supuestos activos</strong><br>Inflación mensual: Q1 '+params.infQ1+'% · Q2 '+params.infQ2+'% · Q3 '+params.infQ3+'% · Q4 '+params.infQ4+'%<br>Paritaria: H1 +'+params.salS1+'% · H2 +'+params.salS2+'%';
 }
 
+function populateDiaSelect(selId, selectedDay){
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  sel.innerHTML = Array.from({length:31},(_,i)=>{
+    const d=i+1;
+    return '<option value="'+d+'"'+(d===selectedDay?' selected':'')+'>'+String(d).padStart(2,'0')+'</option>';
+  }).join('');
+}
 function getMedioOpts(tipo){
   const base='<option value="">— Seleccioná —</option><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option>';
   const extra='<option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option>';
@@ -1251,11 +1289,13 @@ function renderNuevo(resetForm){
     const v=m+'|'+a;
     ms.innerHTML+='<option value="'+v+'"'+(v===curVal?' selected':'')+'>'+MONTHS[m-1]+' '+a+'</option>';
   }
+  populateDiaSelect('f-dia', now.getDate());
   if(resetForm){
     fCuenta.selectedIndex=0;
     document.getElementById('f-importe').value='';
     document.getElementById('f-medio').selectedIndex=0;
     document.getElementById('f-detalle').value='';
+    populateDiaSelect('f-dia', now.getDate());
   }
   updatePlaceholderClass(fCuenta);
   updatePlaceholderClass(document.getElementById('f-medio'));
@@ -1265,7 +1305,7 @@ function setTipo(t){document.getElementById('btn-egr').classList.toggle('active'
 async function guardarMovimiento(){
   const tipo=document.getElementById('btn-egr').classList.contains('active')?'egreso':'ingreso';
   const cc=document.getElementById('f-cuenta').value;
-  const imp=parseFloat(document.getElementById('f-importe').value)||0;
+  const imp=parseImporte(document.getElementById('f-importe').value);
   const medio=document.getElementById('f-medio').value;
   const detalle=document.getElementById('f-detalle').value;
 
@@ -1281,14 +1321,15 @@ async function guardarMovimiento(){
   const cdata = getConceptoData(cc);
   const estructura = cdata ? cdata.estructura : (tipo==='ingreso'?'2. Ingresos':'3. Gtos Fijos');
   const agrupador = cdata ? cdata.agrupador : (tipo==='ingreso'?'1. Ingresos':'2. Servicios');
-  const periodo=new Date(a,m-1,1).toISOString().split('T')[0];
+  const dia=parseInt(document.getElementById('f-dia').value)||1;
+  const periodo=new Date(a,m-1,dia).toISOString().split('T')[0];
   const row=[cc,'',detalle,medio,saldo,periodo,estado,'',m,a,estructura,agrupador];
   const btn=document.getElementById('btn-guardar');
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
   const savedRi=await appendRow(row);
   btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i>Guardar';
   if(savedRi){
-    transactions.push({id:transactions.length,cc,saldo,mes:m,anio:a,estado,medio,detalle,estructura,agrupador,ri:savedRi});
+    transactions.push({id:transactions.length,cc,saldo,mes:m,anio:a,estado,medio,detalle,periodo,estructura,agrupador,ri:savedRi});
     renderNuevo(true);
     showToast('Guardado ✓');
   }
@@ -1318,6 +1359,8 @@ async function loadConceptos(){
     }
     // Update f-cuenta options from conceptos
     updateConceptoSelects();
+    // Re-render Nuevo form if it's visible
+    renderNuevo(false);
   }catch(e){/* Conceptos sheet optional */}
 }
 
@@ -1350,9 +1393,7 @@ function renderParams(){
   renderParamsConceptos();
   renderParamsAjustes();
   // sliders
-  [['inf-q1','infQ1'],['inf-q2','infQ2'],['inf-q3','infQ3'],['inf-q4','infQ4'],['sal-s1','salS1'],['sal-s2','salS2']].forEach(([id,k])=>{
-    const el=document.getElementById(id);if(el){el.value=params[k];document.getElementById(id+'-v').textContent=params[k]+'%';}
-  });
+  // Projection sliders removed
   // show add btn only on conceptos tab
   document.getElementById('params-add-btn').style.display='flex';
   switchParamsTab('conceptos');
@@ -1361,24 +1402,116 @@ function renderParams(){
 function renderParamsConceptos(){
   const body = document.getElementById('params-conceptos-body');
   if(!body) return;
-  if(!conceptos.length){body.innerHTML='<div class="empty"><i class="ti ti-inbox"></i><p>No se encontró la hoja Conceptos</p></div>';return;}
+  if(!conceptos.length){body.innerHTML='<div class="empty"><i class="ti ti-inbox"></i><p>No se encontró la hoja Parámetros</p></div>';return;}
   let html='';
   for(const est of ESTRUCTURAS){
     const items = conceptos.filter(c=>c.estructura===est);
     if(!items.length) continue;
     html+='<div class="section-head" style="padding:14px 0 8px">'+ESTRUCTURA_LABELS[est]+'</div>';
-    html+='<div class="card">';
+    html+='<div class="card" id="drag-group-'+est.replace(/\W/g,'_')+'">';
     for(const c of items){
+      const cidx = conceptos.indexOf(c);
       const agrlabel = c.agrupador.replace(/^\d+\.\s*/,'');
-      html+=`<div class="concepto-row" onclick="openConceptoModal(${conceptos.indexOf(c)})">
+      html+=`<div class="concepto-row" data-idx="${cidx}" data-est="${est}" draggable="true">
+        <i class="ti ti-grip-vertical drag-handle" aria-hidden="true"></i>
         <span class="concepto-name">${c.concepto}</span>
         <span class="concepto-agr">${agrlabel}</span>
-        <i class="ti ti-chevron-right" style="font-size:15px;color:var(--text3)" aria-hidden="true"></i>
+        <i class="ti ti-chevron-right" style="font-size:15px;color:var(--text3)" aria-hidden="true" onclick="event.stopPropagation();openConceptoModal(${cidx})"></i>
       </div>`;
     }
     html+='</div>';
   }
   body.innerHTML=html;
+  initConceptoDrag();
+}
+
+function initConceptoDrag(){
+  let dragIdx = null;
+  document.querySelectorAll('.concepto-row').forEach(row=>{
+    row.addEventListener('click', e=>{
+      if(e.target.classList.contains('drag-handle')) return;
+      const idx = parseInt(row.dataset.idx);
+      openConceptoModal(idx);
+    });
+    row.addEventListener('dragstart', e=>{
+      dragIdx = parseInt(row.dataset.idx);
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    row.addEventListener('dragend', ()=>{
+      row.classList.remove('dragging');
+      document.querySelectorAll('.concepto-row').forEach(r=>r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', e=>{
+      e.preventDefault();
+      document.querySelectorAll('.concepto-row').forEach(r=>r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', async e=>{
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      const targetIdx = parseInt(row.dataset.idx);
+      if(dragIdx===null||dragIdx===targetIdx) return;
+      // Reorder in memory
+      const moved = conceptos.splice(dragIdx,1)[0];
+      const newTarget = dragIdx < targetIdx ? targetIdx-1 : targetIdx;
+      conceptos.splice(newTarget,0,moved);
+      renderParamsConceptos();
+      renderNuevo(false);
+      // Save new order to Excel (rewrite all rows in sheet)
+      await saveConceptosOrder();
+    });
+  });
+  // Touch drag support
+  let touchDragIdx=null, touchDragEl=null;
+  document.querySelectorAll('.drag-handle').forEach(handle=>{
+    handle.addEventListener('touchstart', e=>{
+      touchDragIdx = parseInt(handle.closest('.concepto-row').dataset.idx);
+      touchDragEl = handle.closest('.concepto-row');
+      touchDragEl.classList.add('dragging');
+    },{passive:true});
+  });
+  document.addEventListener('touchmove', e=>{
+    if(touchDragIdx===null) return;
+    const touch=e.touches[0];
+    const el=document.elementFromPoint(touch.clientX,touch.clientY);
+    const targetRow=el?.closest('.concepto-row');
+    document.querySelectorAll('.concepto-row').forEach(r=>r.classList.remove('drag-over'));
+    if(targetRow&&targetRow!==touchDragEl) targetRow.classList.add('drag-over');
+  },{passive:true});
+  document.addEventListener('touchend', async e=>{
+    if(touchDragIdx===null) return;
+    const touch=e.changedTouches[0];
+    const el=document.elementFromPoint(touch.clientX,touch.clientY);
+    const targetRow=el?.closest('.concepto-row');
+    if(targetRow&&targetRow!==touchDragEl){
+      const targetIdx=parseInt(targetRow.dataset.idx);
+      const moved=conceptos.splice(touchDragIdx,1)[0];
+      const newTarget=touchDragIdx<targetIdx?targetIdx-1:targetIdx;
+      conceptos.splice(newTarget,0,moved);
+      renderParamsConceptos();
+      renderNuevo(false);
+      await saveConceptosOrder();
+    }
+    document.querySelectorAll('.concepto-row').forEach(r=>r.classList.remove('dragging','drag-over'));
+    touchDragIdx=null;touchDragEl=null;
+  });
+}
+
+async function saveConceptosOrder(){
+  if(!fileId||!conceptos.length) return;
+  try{
+    // Write all conceptos rows back in new order
+    const values = conceptos.map(c=>[c.concepto,c.frecuencia||'',c.ajuste||'',c.estructura,c.agrupador]);
+    const lastRow = values.length+1;
+    await gf(
+      'https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Parametros/range(address=\'A2:E'+lastRow+'\')',
+      {method:'PATCH',body:JSON.stringify({values})}
+    );
+    // Update ri values
+    conceptos.forEach((c,i)=>c.ri=i+2);
+    showToast('Orden guardado');
+  }catch(e){showToast('Error al guardar orden');}
 }
 
 function renderParamsAjustes(){
@@ -1427,6 +1560,7 @@ function openConceptoModal(idx){
   const c = idx!==null ? conceptos[idx] : null;
   document.getElementById('modalConceptoTitle').textContent = c ? 'Editar concepto' : 'Nuevo concepto';
   document.getElementById('mc-nombre').value = c ? c.concepto : '';
+  document.getElementById('btnDeleteConcepto').style.display = c ? 'flex' : 'none';
   const estSel = document.getElementById('mc-estructura');
   estSel.value = c ? c.estructura : '3. Gtos Fijos';
   refreshAgrupadorOptions(estSel.value, c ? c.agrupador : '');
@@ -1496,6 +1630,32 @@ async function saveConcepto(){
   closeModal('modalConcepto');
   renderParamsConceptos();
   updateConceptoSelects();
+}
+
+async function deleteConcepto(){
+  if(pendingConceptoIdx===null) return;
+  const c = conceptos[pendingConceptoIdx];
+  if(!c) return;
+  const btn = document.getElementById('btnDeleteConcepto');
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  try{
+    // Delete row from Parametros sheet (shift up)
+    await gf(
+      'https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Parametros/range(address=\''+c.ri+':'+c.ri+'\')/delete',
+      {method:'POST',body:JSON.stringify({shift:'Up'})}
+    );
+    conceptos.splice(pendingConceptoIdx,1);
+    conceptos.forEach((x,i)=>{ if(x.ri>c.ri) x.ri--; });
+    closeModal('modalConcepto');
+    renderParamsConceptos();
+    renderParamsAjustes();
+    renderNuevo(false);
+    showToast('Concepto eliminado');
+  }catch(e){
+    showToast('Error al eliminar');
+  }
+  btn.disabled=false; btn.innerHTML='<i class="ti ti-trash"></i>Eliminar';
+  pendingConceptoIdx=null;
 }
 
 async function updateConceptoField(idx, field, value){
