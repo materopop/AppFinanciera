@@ -540,6 +540,8 @@ async function loadExcel() {
     setSS('ok', 'Sincronizado · ' + ts);
     loadP(); renderAll();
     showToast('Datos cargados desde OneDrive');
+    // Clean up any phantom empty rows left by previous bug
+    cleanEmptyRows();
   } catch(e) {
     if (e.message !== 'auth') { setSS('err','Error de conexión'); showToast('Error al conectar con OneDrive'); }
   }
@@ -902,7 +904,40 @@ async function confirmDelete(){
   pendingDeleteIdx=null;
 }
 
-async function deleteRowFromOneDrive(rowIndex){
+async function cleanEmptyRows(){
+  // Find and delete any empty rows within the used range (phantom rows left by partial-range deletes)
+  try{
+    const rr=await gf('https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Base/usedRange');
+    if(!rr.ok)return;
+    const d=await rr.json();
+    if(!d.values)return;
+    // Find rows where col A is empty but there are rows with data after them
+    const emptyRowIndices=[];
+    let lastDataRow=0;
+    for(let i=d.values.length-1;i>=2;i--){
+      if(d.values[i][0]!==null&&d.values[i][0]!==''){lastDataRow=i;break;}
+    }
+    for(let i=2;i<=lastDataRow;i++){
+      if(d.values[i]===undefined||d.values[i][0]===null||d.values[i][0]===''){
+        emptyRowIndices.push(i+1); // 1-based Excel row
+      }
+    }
+    if(!emptyRowIndices.length)return;
+    // Delete from bottom up to preserve row indices
+    for(let i=emptyRowIndices.length-1;i>=0;i--){
+      const row=emptyRowIndices[i];
+      await gf(
+        'https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Base/range(address=\''+row+':'+row+'\')/delete',
+        {method:'POST',body:JSON.stringify({shift:'Up'})}
+      );
+      if(lastKnownRow>=row)lastKnownRow--;
+    }
+    localStorage.setItem('mf_lastRow',lastKnownRow);
+    await gf('https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Base/range(address=\'N1\')',
+      {method:'PATCH',body:JSON.stringify({values:[[lastKnownRow]]})});
+    showToast('Filas vacías eliminadas ('+emptyRowIndices.length+')');
+  }catch(e){/* cleanup non-critical */}
+}
   if(!fileId||rowIndex===undefined){showToast('Sin índice de fila');return false;}
   setSS('syncing','Eliminando…');
   try{
