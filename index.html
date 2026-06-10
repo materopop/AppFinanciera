@@ -777,16 +777,18 @@ function renderEERR(){
             if(t.imprevisto) g.imprevisto = true;
             if(t.estado==='Proyectado') g.proyectado = true;
           }
-          for(const [cc, grp] of byCC){
+          // Sort by absolute amount descending
+          const sorted = [...byCC.values()].sort((a,b)=>Math.abs(b.saldo)-Math.abs(a.saldo));
+          for(const grp of sorted){
             const hasMultipleRows = grp.items.length > 1;
-            const ccKey = aKey+'||'+cc;
+            const ccKey = aKey+'||'+grp.cc;
             const ccOpen = eerrExpanded.has(ccKey);
             if(hasMultipleRows){
-              // Show cc as sub-accordion with individual rows inside
+              // Show cc as collapsible sub-header with summed total
               html+=`<div class="acc-header clickable" onclick="toggleAcc('${ccKey}')" style="padding-left:26px">
                 <div class="acc-header-left">
                   <i class="ti ${ccOpen?'ti-chevron-down':'ti-chevron-right'} acc-chevron"></i>
-                  <span class="acc-label" style="font-size:13px;font-weight:400">${cc}${grp.imprevisto?'<span class="badge imp">imp</span>':''}${grp.proyectado&&!ccOpen?'<span class="badge proy">proy</span>':''}</span>
+                  <span class="acc-label" style="font-size:13px;font-weight:400">${grp.cc}${grp.imprevisto?'<span class="badge imp">imp</span>':''}${grp.proyectado&&!ccOpen?'<span class="badge proy">proy</span>':''}</span>
                 </div>
                 <span class="acc-total ${grp.saldo>=0?'pos':'neg'}" style="font-size:13px">${fmt(grp.saldo)}</span>
               </div>`;
@@ -798,15 +800,15 @@ function renderEERR(){
                     <div class="sw-actions left"><button class="sw-btn del" onclick="openDelete(${idx})">Eliminar</button></div>
                     <div class="sw-content">
                       <div class="tx-body" style="flex:1;min-width:0;padding-left:46px">
-                        <div class="tx-name" style="font-size:12px;font-weight:400;color:var(--text2)">${t.detalle||fmt(t.saldo)}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div>
+                        <div class="tx-name" style="font-size:12px;font-weight:400;color:var(--text2)">${t.detalle||'&nbsp;'}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div>
                       </div>
-                      <div class="tx-amount ${t.saldo>=0?'pos':'neg'}" style="font-family:var(--mono);font-size:12px;font-weight:400">${fmt(t.saldo)}</div>
+                      <div class="tx-amount ${t.saldo>=0?'pos':'neg'}" style="font-family:var(--mono);font-size:12px;font-weight:400;white-space:nowrap">${fmt(t.saldo)}</div>
                     </div>
                   </div>`;
                 }
               }
             } else {
-              // Single row — show directly with swipe
+              // Single row — show with swipe, no detail
               const t = grp.items[0];
               const idx = t.id;
               const proj = t.estado==='Proyectado';
@@ -816,7 +818,6 @@ function renderEERR(){
                 <div class="sw-content">
                   <div class="tx-body" style="flex:1;min-width:0;padding-left:26px">
                     <div class="tx-name" style="font-size:13px;font-weight:400">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${proj?'<span class="badge proy">proy</span>':''}</div>
-                    ${t.detalle?`<div class="tx-meta">${t.detalle}</div>`:''}
                   </div>
                   <div class="tx-amount ${t.saldo>=0?'pos':'neg'}" style="font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap">${fmt(t.saldo)}</div>
                 </div>
