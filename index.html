@@ -767,20 +767,61 @@ function renderEERR(){
           <span class="acc-total ${aTotal>=0?'pos':'neg'}">${fmt(aTotal)}</span>
         </div>`;
         if(isOpen){
+          // Group by cc — sum all rows with the same concept name
+          const byCC = new Map();
           for(const t of aItems){
-            const idx=t.id;
-            const proj=t.estado==='Proyectado';
-            html+=`<div class="sw-wrap" data-idx="${idx}">
-              <div class="sw-actions right"><button class="sw-btn edit" onclick="openEdit(${idx})">Editar</button></div>
-              <div class="sw-actions left"><button class="sw-btn del" onclick="openDelete(${idx})">Eliminar</button></div>
-              <div class="sw-content">
-                <div class="tx-body" style="flex:1;min-width:0;padding-left:26px">
-                  <div class="tx-name" style="font-size:13px;font-weight:400">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${proj?'<span class="badge proy">proy</span>':''}</div>
-                  ${t.detalle?`<div class="tx-meta">${t.detalle}</div>`:''}
+            if(!byCC.has(t.cc)) byCC.set(t.cc, {cc:t.cc, saldo:0, items:[], imprevisto:false, proyectado:false});
+            const g = byCC.get(t.cc);
+            g.saldo += t.saldo;
+            g.items.push(t);
+            if(t.imprevisto) g.imprevisto = true;
+            if(t.estado==='Proyectado') g.proyectado = true;
+          }
+          for(const [cc, grp] of byCC){
+            const hasMultipleRows = grp.items.length > 1;
+            const ccKey = aKey+'||'+cc;
+            const ccOpen = eerrExpanded.has(ccKey);
+            if(hasMultipleRows){
+              // Show cc as sub-accordion with individual rows inside
+              html+=`<div class="acc-header clickable" onclick="toggleAcc('${ccKey}')" style="padding-left:26px">
+                <div class="acc-header-left">
+                  <i class="ti ${ccOpen?'ti-chevron-down':'ti-chevron-right'} acc-chevron"></i>
+                  <span class="acc-label" style="font-size:13px;font-weight:400">${cc}${grp.imprevisto?'<span class="badge imp">imp</span>':''}${grp.proyectado&&!ccOpen?'<span class="badge proy">proy</span>':''}</span>
                 </div>
-                <div class="tx-amount ${t.saldo>=0?'pos':'neg'}" style="font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap">${fmt(t.saldo)}</div>
-              </div>
-            </div>`;
+                <span class="acc-total ${grp.saldo>=0?'pos':'neg'}" style="font-size:13px">${fmt(grp.saldo)}</span>
+              </div>`;
+              if(ccOpen){
+                for(const t of grp.items){
+                  const idx=t.id;
+                  html+=`<div class="sw-wrap" data-idx="${idx}">
+                    <div class="sw-actions right"><button class="sw-btn edit" onclick="openEdit(${idx})">Editar</button></div>
+                    <div class="sw-actions left"><button class="sw-btn del" onclick="openDelete(${idx})">Eliminar</button></div>
+                    <div class="sw-content">
+                      <div class="tx-body" style="flex:1;min-width:0;padding-left:46px">
+                        <div class="tx-name" style="font-size:12px;font-weight:400;color:var(--text2)">${t.detalle||fmt(t.saldo)}${t.estado==='Proyectado'?'<span class="badge proy">proy</span>':''}</div>
+                      </div>
+                      <div class="tx-amount ${t.saldo>=0?'pos':'neg'}" style="font-family:var(--mono);font-size:12px;font-weight:400">${fmt(t.saldo)}</div>
+                    </div>
+                  </div>`;
+                }
+              }
+            } else {
+              // Single row — show directly with swipe
+              const t = grp.items[0];
+              const idx = t.id;
+              const proj = t.estado==='Proyectado';
+              html+=`<div class="sw-wrap" data-idx="${idx}">
+                <div class="sw-actions right"><button class="sw-btn edit" onclick="openEdit(${idx})">Editar</button></div>
+                <div class="sw-actions left"><button class="sw-btn del" onclick="openDelete(${idx})">Eliminar</button></div>
+                <div class="sw-content">
+                  <div class="tx-body" style="flex:1;min-width:0;padding-left:26px">
+                    <div class="tx-name" style="font-size:13px;font-weight:400">${t.cc}${t.imprevisto?'<span class="badge imp">imp</span>':''}${proj?'<span class="badge proy">proy</span>':''}</div>
+                    ${t.detalle?`<div class="tx-meta">${t.detalle}</div>`:''}
+                  </div>
+                  <div class="tx-amount ${t.saldo>=0?'pos':'neg'}" style="font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap">${fmt(t.saldo)}</div>
+                </div>
+              </div>`;
+            }
           }
         }
       }
@@ -937,7 +978,6 @@ async function cleanEmptyRows(){
     localStorage.setItem('mf_lastRow',lastKnownRow);
     await gf('https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Base/range(address=\'N1\')',
       {method:'PATCH',body:JSON.stringify({values:[[lastKnownRow]]})});
-    showToast('Filas vacías eliminadas ('+emptyRowIndices.length+')');
   }catch(e){/* cleanup non-critical */}
 }
 
