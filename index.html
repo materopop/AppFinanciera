@@ -115,6 +115,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;font-family:var(--mono);}
 .user-name{font-size:13px;font-weight:500;}
 .btn-logout{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:2px;margin-left:2px;}
+.add-btn{width:34px;height:34px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.params-tabs{display:flex;border-bottom:1px solid var(--border);}
+.params-tab{flex:1;padding:11px 0;font-size:14px;font-weight:500;text-align:center;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--sans);transition:color .15s;}
+.params-tab.active{color:var(--text);border-bottom-color:var(--text);}
+.concepto-row{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border);gap:10px;cursor:pointer;}
+.concepto-row:last-child{border-bottom:none;}.concepto-row:active{background:var(--surface2);}
+.concepto-name{flex:1;font-size:14px;}.concepto-agr{font-size:12px;color:var(--text2);}
+.ajuste-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;}
+.ajuste-row:last-child{border-bottom:none;}
+.ajuste-name{flex:1;font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ajuste-sel,.freq-sel{height:30px;padding:0 6px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:var(--sans);font-size:12px;-webkit-appearance:none;outline:none;cursor:pointer;}
 
 /* DASH SUMMARY BAR */
 .dash-summary{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin:0 16px 20px;overflow:hidden;}
@@ -252,21 +263,39 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
   </div>
 
   <div class="screen" id="screen-params">
-    <div class="header"><div class="header-title">Parámetros</div></div>
-    <div class="params-wrap">
-      <div class="param-card">
-        <div class="param-card-title">Inflación mensual proyectada</div>
-        <div class="param-row"><label>Ene–Mar</label><input type="range" min="1" max="20" step="0.5" id="inf-q1" oninput="upParam(this,'inf-q1-v','infQ1')"><span class="pval" id="inf-q1-v"></span></div>
-        <div class="param-row"><label>Abr–Jun</label><input type="range" min="1" max="20" step="0.5" id="inf-q2" oninput="upParam(this,'inf-q2-v','infQ2')"><span class="pval" id="inf-q2-v"></span></div>
-        <div class="param-row"><label>Jul–Sep</label><input type="range" min="1" max="20" step="0.5" id="inf-q3" oninput="upParam(this,'inf-q3-v','infQ3')"><span class="pval" id="inf-q3-v"></span></div>
-        <div class="param-row"><label>Oct–Dic</label><input type="range" min="1" max="20" step="0.5" id="inf-q4" oninput="upParam(this,'inf-q4-v','infQ4')"><span class="pval" id="inf-q4-v"></span></div>
+    <div class="header">
+      <div class="header-title">Parámetros</div>
+      <button class="add-btn" id="params-add-btn" onclick="openConceptoModal(null)" aria-label="Nuevo concepto" style="display:none"><i class="ti ti-plus"></i></button>
+    </div>
+    <div class="params-tabs">
+      <button class="params-tab active" id="ptab-conceptos" onclick="switchParamsTab('conceptos')">Conceptos</button>
+      <button class="params-tab" id="ptab-ajustes" onclick="switchParamsTab('ajustes')">Ajustes</button>
+    </div>
+
+    <!-- TAB CONCEPTOS -->
+    <div id="params-conceptos">
+      <div id="params-conceptos-body" style="padding:0 16px 20px"></div>
+    </div>
+
+    <!-- TAB AJUSTES -->
+    <div id="params-ajustes" style="display:none">
+      <div id="params-ajustes-body" style="padding:0 16px"></div>
+      <div style="padding:0 16px 20px">
+        <div class="section-head" style="padding:16px 0 8px">Proyección global</div>
+        <div class="param-card">
+          <div class="param-card-title">Inflación mensual</div>
+          <div class="param-row"><label>Ene–Mar</label><input type="range" min="1" max="20" step="0.5" id="inf-q1" oninput="upParam(this,'inf-q1-v','infQ1')"><span class="pval" id="inf-q1-v"></span></div>
+          <div class="param-row"><label>Abr–Jun</label><input type="range" min="1" max="20" step="0.5" id="inf-q2" oninput="upParam(this,'inf-q2-v','infQ2')"><span class="pval" id="inf-q2-v"></span></div>
+          <div class="param-row"><label>Jul–Sep</label><input type="range" min="1" max="20" step="0.5" id="inf-q3" oninput="upParam(this,'inf-q3-v','infQ3')"><span class="pval" id="inf-q3-v"></span></div>
+          <div class="param-row"><label>Oct–Dic</label><input type="range" min="1" max="20" step="0.5" id="inf-q4" oninput="upParam(this,'inf-q4-v','infQ4')"><span class="pval" id="inf-q4-v"></span></div>
+        </div>
+        <div class="param-card">
+          <div class="param-card-title">Paritaria salarial</div>
+          <div class="param-row"><label>Sem 1 (Ene–Jun)</label><input type="range" min="0" max="80" step="1" id="sal-s1" oninput="upParam(this,'sal-s1-v','salS1')"><span class="pval" id="sal-s1-v"></span></div>
+          <div class="param-row"><label>Sem 2 (Jul–Dic)</label><input type="range" min="0" max="80" step="1" id="sal-s2" oninput="upParam(this,'sal-s2-v','salS2')"><span class="pval" id="sal-s2-v"></span></div>
+        </div>
+        <button class="btn-submit" onclick="showScreen('proj')"><i class="ti ti-refresh"></i>Recalcular proyección</button>
       </div>
-      <div class="param-card">
-        <div class="param-card-title">Paritaria salarial</div>
-        <div class="param-row"><label>Sem 1 (Ene–Jun)</label><input type="range" min="0" max="80" step="1" id="sal-s1" oninput="upParam(this,'sal-s1-v','salS1')"><span class="pval" id="sal-s1-v"></span></div>
-        <div class="param-row"><label>Sem 2 (Jul–Dic)</label><input type="range" min="0" max="80" step="1" id="sal-s2" oninput="upParam(this,'sal-s2-v','salS2')"><span class="pval" id="sal-s2-v"></span></div>
-      </div>
-      <button class="btn-submit" onclick="showScreen('proj')"><i class="ti ti-refresh"></i>Recalcular proyección</button>
     </div>
   </div>
 </div>
@@ -310,6 +339,28 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('modalEdit')">Cancelar</button>
       <button class="btn-submit" id="btnConfirmEdit" onclick="confirmEdit()" style="margin-top:0"><i class="ti ti-device-floppy"></i>Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONCEPTO MODAL -->
+<div class="modal-overlay" id="modalConcepto">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalConceptoTitle">Nuevo concepto</div>
+    <div class="fg"><label>Nombre</label><input type="text" id="mc-nombre" placeholder="Ej: Gas"></div>
+    <div class="fg"><label>Estructura</label>
+      <select id="mc-estructura">
+        <option value="2. Ingresos">Ingresos</option>
+        <option value="3. Gtos Fijos" selected>Gastos fijos</option>
+        <option value="4. Gtos Variables">Gastos variables</option>
+        <option value="5. Gtos Financieros">Gastos financieros</option>
+      </select>
+    </div>
+    <div class="fg"><label>Agrupador</label><select id="mc-agrupador"></select></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalConcepto')">Cancelar</button>
+      <button class="btn-submit" style="margin-top:0;height:46px" id="btnSaveConcepto" onclick="saveConcepto()"><i class="ti ti-device-floppy"></i>Guardar</button>
     </div>
   </div>
 </div>
@@ -542,8 +593,8 @@ async function loadExcel() {
     setSS('ok', 'Sincronizado · ' + ts);
     loadP(); renderAll();
     showToast('Datos cargados desde OneDrive');
-    // Clean up any phantom empty rows left by previous bug
     cleanEmptyRows();
+    loadConceptos();
   } catch(e) {
     if (e.message !== 'auth') { setSS('err','Error de conexión'); showToast('Error al conectar con OneDrive'); }
   }
@@ -1181,9 +1232,17 @@ function getMedioOpts(tipo){
 }
 function renderNuevo(resetForm){
   const tipo=document.getElementById('btn-egr').classList.contains('active')?'egreso':'ingreso';
-  const cuentas=tipo==='ingreso'?CI:CE;
-  document.getElementById('f-cuenta').innerHTML='<option value="">— Seleccioná —</option>'+cuentas.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
+  let cuentas;
+  if(conceptos.length){
+    cuentas=conceptos.filter(c=>tipo==='ingreso'?c.estructura==='2. Ingresos':c.estructura!=='2. Ingresos').map(c=>c.concepto);
+  } else {
+    cuentas=tipo==='ingreso'?CI:CE;
+  }
+  const fCuenta=document.getElementById('f-cuenta');
+  fCuenta.innerHTML='<option value="">— Seleccioná —</option>'+cuentas.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
+  fCuenta.onchange=function(){updatePlaceholderClass(this);};
   document.getElementById('f-medio').innerHTML=getMedioOpts(tipo);
+  document.getElementById('f-medio').onchange=function(){updatePlaceholderClass(this);};
   const ms=document.getElementById('f-mes');
   const now=new Date();
   const curVal=(now.getMonth()+1)+'|'+now.getFullYear();
@@ -1193,13 +1252,12 @@ function renderNuevo(resetForm){
     ms.innerHTML+='<option value="'+v+'"'+(v===curVal?' selected':'')+'>'+MONTHS[m-1]+' '+a+'</option>';
   }
   if(resetForm){
-    document.getElementById('f-cuenta').selectedIndex=0;
+    fCuenta.selectedIndex=0;
     document.getElementById('f-importe').value='';
     document.getElementById('f-medio').selectedIndex=0;
     document.getElementById('f-detalle').value='';
   }
-  // Set placeholder class for selects
-  updatePlaceholderClass(document.getElementById('f-cuenta'));
+  updatePlaceholderClass(fCuenta);
   updatePlaceholderClass(document.getElementById('f-medio'));
 }
 function setTipo(t){document.getElementById('btn-egr').classList.toggle('active',t==='egreso');document.getElementById('btn-ing').classList.toggle('active',t==='ingreso');renderNuevo(false);}
@@ -1219,8 +1277,10 @@ async function guardarMovimiento(){
   const[m,a]=document.getElementById('f-mes').value.split('|').map(Number);
   const estado='Contable';
   const saldo=tipo==='egreso'?-Math.abs(imp):Math.abs(imp);
-  const estructura=tipo==='ingreso'?'2. Ingresos':'3. Gtos Fijos';
-  const agrupador=tipo==='ingreso'?'1. Ingresos':'2. Servicios';
+  // Get estructura/agrupador from conceptos sheet if available
+  const cdata = getConceptoData(cc);
+  const estructura = cdata ? cdata.estructura : (tipo==='ingreso'?'2. Ingresos':'3. Gtos Fijos');
+  const agrupador = cdata ? cdata.agrupador : (tipo==='ingreso'?'1. Ingresos':'2. Servicios');
   const periodo=new Date(a,m-1,1).toISOString().split('T')[0];
   const row=[cc,'',detalle,medio,saldo,periodo,estado,'',m,a,estructura,agrupador];
   const btn=document.getElementById('btn-guardar');
@@ -1234,8 +1294,221 @@ async function guardarMovimiento(){
   }
 }
 
+// ── CONCEPTOS ─────────────────────────────────────────────────────────────────
+let conceptos = []; // [{concepto, frecuencia, ajuste, estructura, agrupador, ri}]
+let conceptosFileId = null; // same fileId, sheet Conceptos
+
+const ESTRUCTURAS = ['2. Ingresos','3. Gtos Fijos','4. Gtos Variables','5. Gtos Financieros'];
+const ESTRUCTURA_LABELS = {'2. Ingresos':'Ingresos','3. Gtos Fijos':'Gastos fijos','4. Gtos Variables':'Gastos variables','5. Gtos Financieros':'Gastos financieros'};
+const AJUSTES = ['Inflación','Paritaria','Fijo','Sindicato','Particular'];
+const FRECUENCIAS = ['Mensual','Bimestral','Trimestral','Cuatrimestral','Semestral','Anual'];
+
+async function loadConceptos(){
+  if(!fileId) return;
+  try{
+    const r = await gf('https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Conceptos/usedRange');
+    if(!r.ok) return;
+    const d = await r.json();
+    if(!d.values||d.values.length<2) return;
+    conceptos = [];
+    for(let i=1;i<d.values.length;i++){
+      const row=d.values[i];
+      if(!row[0]) continue;
+      conceptos.push({concepto:row[0]||'',frecuencia:row[1]||'',ajuste:row[2]||'',estructura:row[3]||'',agrupador:row[4]||'',ri:i+1});
+    }
+    // Update f-cuenta options from conceptos
+    updateConceptoSelects();
+  }catch(e){/* Conceptos sheet optional */}
+}
+
+function updateConceptoSelects(){
+  // Update nuevo form — separate ingresos vs egresos
+  const cuentaEl = document.getElementById('f-cuenta');
+  if(cuentaEl){
+    const tipo = document.getElementById('btn-egr').classList.contains('active')?'egreso':'ingreso';
+    const filtered = conceptos.filter(c=>tipo==='ingreso'?c.estructura==='2. Ingresos':c.estructura!=='2. Ingresos');
+    const list = filtered.length ? filtered.map(c=>c.concepto) : (tipo==='ingreso'?CI:CE);
+    cuentaEl.innerHTML='<option value="">— Seleccioná —</option>'+list.map(c=>'<option value="'+c+'">'+c+'</option>').join('');
+    updatePlaceholderClass(cuentaEl);
+  }
+}
+
+function getConceptoData(nombre){
+  return conceptos.find(c=>c.concepto===nombre) || null;
+}
+
+// ── PARAMS TABS ───────────────────────────────────────────────────────────────
+function switchParamsTab(tab){
+  document.getElementById('ptab-conceptos').classList.toggle('active',tab==='conceptos');
+  document.getElementById('ptab-ajustes').classList.toggle('active',tab==='ajustes');
+  document.getElementById('params-conceptos').style.display=tab==='conceptos'?'block':'none';
+  document.getElementById('params-ajustes').style.display=tab==='ajustes'?'block':'none';
+  document.getElementById('params-add-btn').style.display=tab==='conceptos'?'flex':'none';
+}
+
 function renderParams(){
-  [['inf-q1','infQ1'],['inf-q2','infQ2'],['inf-q3','infQ3'],['inf-q4','infQ4'],['sal-s1','salS1'],['sal-s2','salS2']].forEach(([id,k])=>{document.getElementById(id).value=params[k];document.getElementById(id+'-v').textContent=params[k]+'%';});
+  renderParamsConceptos();
+  renderParamsAjustes();
+  // sliders
+  [['inf-q1','infQ1'],['inf-q2','infQ2'],['inf-q3','infQ3'],['inf-q4','infQ4'],['sal-s1','salS1'],['sal-s2','salS2']].forEach(([id,k])=>{
+    const el=document.getElementById(id);if(el){el.value=params[k];document.getElementById(id+'-v').textContent=params[k]+'%';}
+  });
+  // show add btn only on conceptos tab
+  document.getElementById('params-add-btn').style.display='flex';
+  switchParamsTab('conceptos');
+}
+
+function renderParamsConceptos(){
+  const body = document.getElementById('params-conceptos-body');
+  if(!body) return;
+  if(!conceptos.length){body.innerHTML='<div class="empty"><i class="ti ti-inbox"></i><p>No se encontró la hoja Conceptos</p></div>';return;}
+  let html='';
+  for(const est of ESTRUCTURAS){
+    const items = conceptos.filter(c=>c.estructura===est);
+    if(!items.length) continue;
+    html+='<div class="section-head" style="padding:14px 0 8px">'+ESTRUCTURA_LABELS[est]+'</div>';
+    html+='<div class="card">';
+    for(const c of items){
+      const agrlabel = c.agrupador.replace(/^\d+\.\s*/,'');
+      html+=`<div class="concepto-row" onclick="openConceptoModal(${conceptos.indexOf(c)})">
+        <span class="concepto-name">${c.concepto}</span>
+        <span class="concepto-agr">${agrlabel}</span>
+        <i class="ti ti-chevron-right" style="font-size:15px;color:var(--text3)" aria-hidden="true"></i>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  body.innerHTML=html;
+}
+
+function renderParamsAjustes(){
+  const body = document.getElementById('params-ajustes-body');
+  if(!body) return;
+  if(!conceptos.length){body.innerHTML='';return;}
+  let html='';
+  for(const est of ESTRUCTURAS){
+    const items = conceptos.filter(c=>c.estructura===est);
+    if(!items.length) continue;
+    html+='<div class="section-head" style="padding:14px 0 8px">'+ESTRUCTURA_LABELS[est]+'</div>';
+    html+='<div class="card">';
+    for(const c of items){
+      const cidx = conceptos.indexOf(c);
+      const ajSel = AJUSTES.map(a=>`<option value="${a}"${c.ajuste===a?' selected':''}>${a}</option>`).join('');
+      const frSel = FRECUENCIAS.map(f=>`<option value="${f}"${c.frecuencia===f?' selected':''}>${f}</option>`).join('');
+      html+=`<div class="ajuste-row">
+        <span class="ajuste-name">${c.concepto}</span>
+        <select class="ajuste-sel" onchange="updateConceptoField(${cidx},'ajuste',this.value)">${ajSel}</select>
+        <select class="freq-sel" onchange="updateConceptoField(${cidx},'frecuencia',this.value)">${frSel}</select>
+      </div>`;
+    }
+    html+='</div>';
+  }
+  body.innerHTML=html;
+}
+
+// ── CONCEPTO MODAL ────────────────────────────────────────────────────────────
+let pendingConceptoIdx = null;
+
+function getAgrupadores(estructura){
+  // Build list from existing conceptos + defaults
+  const fromData = [...new Set(conceptos.filter(c=>c.estructura===estructura).map(c=>c.agrupador))];
+  const defaults = {
+    '2. Ingresos':['1. Ingresos','2. Otros'],
+    '3. Gtos Fijos':['1. Alquiler','2. Servicios','3. Movilidad'],
+    '4. Gtos Variables':['1. Comida','2. Movilidad','3. Salidas','4. Cuotas','5. Salud'],
+    '5. Gtos Financieros':['1. Crédito hipotecario','2. Tarjeta de crédito']
+  };
+  const all = [...new Set([...(defaults[estructura]||[]),...fromData])].sort();
+  return all;
+}
+
+function openConceptoModal(idx){
+  pendingConceptoIdx = idx;
+  const c = idx!==null ? conceptos[idx] : null;
+  document.getElementById('modalConceptoTitle').textContent = c ? 'Editar concepto' : 'Nuevo concepto';
+  document.getElementById('mc-nombre').value = c ? c.concepto : '';
+  const estSel = document.getElementById('mc-estructura');
+  estSel.value = c ? c.estructura : '3. Gtos Fijos';
+  refreshAgrupadorOptions(estSel.value, c ? c.agrupador : '');
+  openModal('modalConcepto');
+}
+
+function refreshAgrupadorOptions(estructura, selectedAgr){
+  const sel = document.getElementById('mc-agrupador');
+  const agrs = getAgrupadores(estructura);
+  sel.innerHTML = agrs.map(a=>`<option value="${a}"${a===selectedAgr?' selected':''}>${a.replace(/^\d+\.\s*/,'')}</option>`).join('');
+  // Option to add new agrupador
+  sel.innerHTML += '<option value="__new__">+ Nuevo agrupador…</option>';
+}
+
+document.addEventListener('change', e=>{
+  if(e.target.id==='mc-estructura') refreshAgrupadorOptions(e.target.value,'');
+  if(e.target.id==='mc-agrupador' && e.target.value==='__new__'){
+    const name = prompt('Nombre del nuevo agrupador:');
+    if(name){
+      const num = getAgrupadores(document.getElementById('mc-estructura').value).length+1;
+      const val = num+'. '+name;
+      const opt = document.createElement('option');
+      opt.value=val;opt.textContent=name;e.target.insertBefore(opt,e.target.lastChild);
+      e.target.value=val;
+    } else { e.target.value=e.target.options[0].value; }
+  }
+});
+
+async function saveConcepto(){
+  const nombre = document.getElementById('mc-nombre').value.trim();
+  if(!nombre){showToast('Ingresá un nombre');return;}
+  const estructura = document.getElementById('mc-estructura').value;
+  const agrupador = document.getElementById('mc-agrupador').value;
+  if(agrupador==='__new__'){showToast('Seleccioná un agrupador');return;}
+
+  const btn = document.getElementById('btnSaveConcepto');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
+
+  const row = [nombre,'','',estructura,agrupador];
+
+  if(pendingConceptoIdx !== null){
+    // Edit existing
+    const c = conceptos[pendingConceptoIdx];
+    const excelRow = c.ri;
+    const ok = await gf(
+      'https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Conceptos/range(address=\'A'+excelRow+':E'+excelRow+'\')',
+      {method:'PATCH',body:JSON.stringify({values:[row]})}
+    );
+    if(ok.ok){
+      conceptos[pendingConceptoIdx]={...c,concepto:nombre,estructura,agrupador};
+      showToast('Concepto actualizado');
+    }
+  } else {
+    // New concepto
+    const nextRow = conceptos.length + 2; // +1 header +1 for 1-based
+    const ok = await gf(
+      'https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Conceptos/range(address=\'A'+nextRow+':E'+nextRow+'\')',
+      {method:'PATCH',body:JSON.stringify({values:[row]})}
+    );
+    if(ok.ok){
+      conceptos.push({concepto:nombre,frecuencia:'',ajuste:'',estructura,agrupador,ri:nextRow});
+      showToast('Concepto agregado');
+    }
+  }
+
+  btn.disabled=false;btn.innerHTML='<i class="ti ti-device-floppy"></i>Guardar';
+  closeModal('modalConcepto');
+  renderParamsConceptos();
+  updateConceptoSelects();
+}
+
+async function updateConceptoField(idx, field, value){
+  const c = conceptos[idx];
+  c[field] = value;
+  // Map field to column: concepto=A, frecuencia=B, ajuste=C, estructura=D, agrupador=E
+  const colMap={concepto:'A',frecuencia:'B',ajuste:'C',estructura:'D',agrupador:'E'};
+  const col = colMap[field];
+  if(!col) return;
+  await gf(
+    'https://graph.microsoft.com/v1.0/me/drive/items/'+fileId+'/workbook/worksheets/Conceptos/range(address=\''+col+c.ri+'\')',
+    {method:'PATCH',body:JSON.stringify({values:[[value]]})}
+  );
 }
 function upParam(el,did,key){const v=parseFloat(el.value);document.getElementById(did).textContent=v+'%';params[key]=v;saveP();}
 function saveP(){localStorage.setItem('mf_p',JSON.stringify(params));}
