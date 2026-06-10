@@ -85,6 +85,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 @media(min-width:600px){.fg label{color:#000000;}}
 .fg input,.fg select,.fg textarea{width:100%;padding:0 12px;height:44px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--sans);font-size:15px;-webkit-appearance:none;outline:none;}
 .fg input::placeholder,.fg textarea::placeholder{color:var(--text3);}
+.fg select option[value='']{color:var(--text3);}
+.fg select.placeholder{color:var(--text3);}
 .fg textarea{height:72px;padding:12px;resize:none;}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--text);}
 .btn-submit{width:100%;height:50px;background:var(--text);color:var(--bg);border:none;border-radius:var(--radius);font-family:var(--sans);font-size:16px;font-weight:500;cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.15s;}
@@ -240,7 +242,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
         <button class="type-btn active" id="btn-egr" onclick="setTipo('egreso')"><i class="ti ti-arrow-down-right"></i>Egreso</button>
         <button class="type-btn" id="btn-ing" onclick="setTipo('ingreso')"><i class="ti ti-arrow-up-right"></i>Ingreso</button>
       </div>
-      <div class="fg"><label>Cuenta</label><select id="f-cuenta"></select></div>
+      <div class="fg"><label>Concepto</label><select id="f-cuenta"></select></div>
       <div class="fg"><label>Importe ($)</label><input type="number" id="f-importe" placeholder="0" inputmode="decimal" min="0" step="0.01"></div>
       <div class="fg"><label>Mes</label><select id="f-mes"></select></div>
       <div class="fg"><label>Medio de pago</label><select id="f-medio"><option value="">— Seleccioná —</option><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option></select></div>
@@ -300,7 +302,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
       <button class="type-btn active" id="edit-btn-egr" onclick="setEditTipo('egreso')"><i class="ti ti-arrow-down-right"></i>Egreso</button>
       <button class="type-btn" id="edit-btn-ing" onclick="setEditTipo('ingreso')"><i class="ti ti-arrow-up-right"></i>Ingreso</button>
     </div>
-    <div class="fg"><label>Cuenta</label><select id="ef-cuenta"></select></div>
+    <div class="fg"><label>Concepto</label><select id="ef-cuenta"></select></div>
     <div class="fg"><label>Importe ($)</label><input type="number" id="ef-importe" placeholder="0" inputmode="decimal" min="0" step="0.01"></div>
     <div class="fg"><label>Mes</label><select id="ef-mes"></select></div>
     <div class="fg"><label>Medio de pago</label><select id="ef-medio"><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option></select></div>
@@ -938,6 +940,8 @@ async function cleanEmptyRows(){
     showToast('Filas vacías eliminadas ('+emptyRowIndices.length+')');
   }catch(e){/* cleanup non-critical */}
 }
+
+async function deleteRowFromOneDrive(rowIndex){
   if(!fileId||rowIndex===undefined){showToast('Sin índice de fila');return false;}
   setSS('syncing','Eliminando…');
   try{
@@ -1153,6 +1157,9 @@ function renderNuevo(resetForm){
     document.getElementById('f-medio').selectedIndex=0;
     document.getElementById('f-detalle').value='';
   }
+  // Set placeholder class for selects
+  updatePlaceholderClass(document.getElementById('f-cuenta'));
+  updatePlaceholderClass(document.getElementById('f-medio'));
 }
 function setTipo(t){document.getElementById('btn-egr').classList.toggle('active',t==='egreso');document.getElementById('btn-ing').classList.toggle('active',t==='ingreso');renderNuevo(false);}
 
