@@ -1307,12 +1307,16 @@ function populateDiaSelect(selId, selectedDay){
 function populateAgrupadorSelect(selId, estructuraHint, selectedAgr){
   const sel = document.getElementById(selId);
   if(!sel) return;
-  // Get agrupadores for this estructura from conceptos
   const agrs = getAgrupadores(estructuraHint||'3. Gtos Fijos');
   sel.innerHTML = agrs.map(a=>{
     const lbl = a.replace(/^\d+\.\s*/,'');
     return '<option value="'+a+'"'+(a===selectedAgr?' selected':'')+'>'+lbl+'</option>';
   }).join('');
+  // If selectedAgr not found, try matching without numeric prefix
+  if(selectedAgr && !agrs.includes(selectedAgr)){
+    const match = agrs.find(a=>a.replace(/^\d+\.\s*/,'')===(selectedAgr.replace(/^\d+\.\s*/,'')));
+    if(match) sel.value = match;
+  }
 }
 
 function onCuentaChange(cuentaSelId, agrupadorSelId){
@@ -1608,16 +1612,23 @@ function renderParamsAjustes(){
 let pendingConceptoIdx = null;
 
 function getAgrupadores(estructura){
-  // Build list from existing conceptos + defaults
-  const fromData = [...new Set(conceptos.filter(c=>c.estructura===estructura).map(c=>c.agrupador))];
-  const defaults = {
-    '2. Ingresos':['1. Ingresos','2. Otros'],
-    '3. Gtos Fijos':['1. Alquiler','2. Servicios','3. Movilidad'],
-    '4. Gtos Variables':['1. Comida','2. Movilidad','3. Salidas','4. Cuotas','5. Salud'],
-    '5. Gtos Financieros':['1. Crédito hipotecario','2. Tarjeta de crédito']
-  };
-  const all = [...new Set([...(defaults[estructura]||[]),...fromData])].sort();
-  return all;
+  // Build list exclusively from conceptos sheet data — no hardcoded defaults
+  const fromData = [...new Set(
+    conceptos
+      .filter(c=>c.estructura===estructura && c.agrupador)
+      .map(c=>c.agrupador)
+  )].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
+  // Fallback only if no data at all
+  if(!fromData.length){
+    const defaults = {
+      '2. Ingresos':['1. Ingresos','2. Otros'],
+      '3. Gtos Fijos':['1. Alquiler','2. Servicios','3. Movilidad'],
+      '4. Gtos Variables':['1. Comida','2. Movilidad','3. Salidas','4. Cuotas','5. Salud'],
+      '5. Gtos Financieros':['1. Crédito hipotecario','2. Tarjeta de crédito']
+    };
+    return defaults[estructura]||[];
+  }
+  return fromData;
 }
 
 function openConceptoModal(idx){
