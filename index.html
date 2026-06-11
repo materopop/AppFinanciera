@@ -604,6 +604,17 @@ async function loadExcel(silent) {
   }
 }
 
+function excelSerialToDate(val){
+  // Excel serial: days since 1900-01-00 (with leap year bug)
+  if(typeof val === 'number' && val > 1000){
+    const d = new Date((val - 25569) * 86400 * 1000);
+    return d.toISOString().split('T')[0]; // "YYYY-MM-DD"
+  }
+  // Already a string date
+  if(typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}/)) return val;
+  return val||'';
+}
+
 function parseRows(rows) {
   if (!rows || rows.length < 2) return;
   transactions = [];
@@ -611,7 +622,7 @@ function parseRows(rows) {
     const r = rows[i]; if (!r[0]) continue;
     const saldo = parseFloat(r[4]) || 0, mes = parseInt(r[8]) || 0, anio = parseInt(r[9]) || 0;
     if (!mes || !anio) continue;
-    transactions.push({id:transactions.length,cc:r[0]||'',detalle:r[2]||'',medio:r[3]||'',saldo,periodo:r[5]||'',estado:r[6]||'Contable',imprevisto:r[7]==='Imprevisto',mes,anio,estructura:r[10]||'',agrupador:r[11]||'',ri:i+1});
+    transactions.push({id:transactions.length,cc:r[0]||'',detalle:r[2]||'',medio:r[3]||'',saldo,periodo:excelSerialToDate(r[5]),estado:r[6]||'Contable',imprevisto:r[7]==='Imprevisto',mes,anio,estructura:r[10]||'',agrupador:r[11]||'',ri:i+1});
   }
 }
 
