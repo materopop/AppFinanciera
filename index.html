@@ -557,8 +557,8 @@ async function fetchUser() {
   userData = await r.json();
 }
 
-async function loadExcel() {
-  setSS('syncing', 'Leyendo OneDrive…');
+async function loadExcel(silent) {
+  if(!silent) setSS('syncing', 'Leyendo OneDrive…');
   try {
     const mr = await gf('https://graph.microsoft.com/v1.0/me/drive/root:/App_Financiera/Base.xlsx');
     if (!mr.ok) { setSS('err','Archivo no encontrado'); showToast('No se encontró App_Financiera/Base.xlsx'); return; }
@@ -596,7 +596,7 @@ async function loadExcel() {
     const ts = new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
     setSS('ok', 'Sincronizado · ' + ts);
     loadP(); renderAll();
-    showToast('Datos cargados desde OneDrive');
+    if(!silent) showToast('Datos cargados desde OneDrive');
     cleanEmptyRows();
     loadConceptos();
   } catch(e) {
@@ -1048,6 +1048,7 @@ async function confirmDelete(){
     closeModal('modalDel');
     renderEERR();renderDash();
     showToast('Registro eliminado');
+    loadExcel(true);
   }
   pendingDeleteIdx=null;
 }
@@ -1204,6 +1205,7 @@ async function confirmEdit(){
     closeModal('modalEdit');
     renderEERR();renderDash();
     showToast('Registro actualizado');
+    loadExcel(true);
   }
   pendingEditIdx=null;
 }
@@ -1401,6 +1403,7 @@ async function guardarMovimiento(){
     transactions.push({id:transactions.length,cc,saldo,mes:m,anio:a,estado,medio,detalle,periodo,estructura,agrupador,ri:savedRi});
     renderNuevo(true);
     showToast('Guardado ✓');
+    loadExcel(true);
   }
 }
 
