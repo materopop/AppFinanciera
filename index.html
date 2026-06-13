@@ -117,6 +117,21 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;font-family:var(--mono);}
 .user-name{font-size:13px;font-weight:500;}
 .btn-logout{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:2px;margin-left:2px;}
+.cal-wrap{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;}
+.cal-box{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:420px;padding:16px 16px 32px;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-title{font-size:15px;font-weight:500;}
+.cal-nav{width:34px;height:34px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-dow{font-size:11px;font-weight:500;color:var(--text3);text-align:center;padding:4px 0;}
+.cal-day{height:36px;border-radius:var(--radius-sm);border:none;background:none;cursor:pointer;font-size:14px;color:var(--text);display:flex;align-items:center;justify-content:center;font-family:var(--sans);width:100%;}
+.cal-day:hover{background:var(--surface2);}
+.cal-day.today{font-weight:600;color:var(--green);}
+.cal-day.selected{background:var(--text);color:var(--bg);}
+.cal-day.other-month{color:var(--text3);}
+.cal-close{width:100%;height:44px;margin-top:12px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface2);font-family:var(--sans);font-size:14px;cursor:pointer;color:var(--text);}
+.date-btn{width:100%;height:44px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-family:var(--sans);font-size:14px;padding:0 12px;display:flex;align-items:center;cursor:pointer;gap:8px;text-align:left;}
+.date-btn i{color:var(--text3);font-size:16px;}
 .upload-dropzone{background:var(--surface);border:1.5px dashed var(--border2);border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;}
 .upload-dropzone:active{background:var(--surface2);}
 .upload-dropzone i{font-size:28px;color:var(--text3);}
@@ -294,10 +309,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
       <div class="fg"><label>Agrupador</label><select id="f-agrupador"></select></div>
       <div class="fg"><label>Importe ($)</label><input type="text" id="f-importe" placeholder="0" inputmode="decimal" oninput="onImporteInput(this)"></div>
       <div class="fg"><label>Fecha</label>
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:8px">
-          <select id="f-dia"></select>
-          <select id="f-mes"></select>
-        </div>
+        <button type="button" class="date-btn" id="f-fecha-btn" onclick="openCal('f-fecha-btn','f-fecha-val')">
+          <i class="ti ti-calendar" aria-hidden="true"></i><span id="f-fecha-lbl">Seleccioná una fecha</span>
+        </button>
+        <input type="hidden" id="f-fecha-val">
       </div>
       <div class="fg"><label>Medio de pago</label><select id="f-medio"><option value="">— Seleccioná —</option><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option></select></div>
       <div class="fg"><label>Detalle (opcional)</label><textarea id="f-detalle" placeholder="Descripción…"></textarea></div>
@@ -428,10 +443,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
     <div class="fg"><label>Agrupador</label><select id="ef-agrupador"></select></div>
     <div class="fg"><label>Importe ($)</label><input type="text" id="ef-importe" placeholder="0" inputmode="decimal" oninput="onImporteInput(this)"></div>
     <div class="fg"><label>Fecha</label>
-      <div style="display:grid;grid-template-columns:80px 1fr;gap:8px">
-        <select id="ef-dia"></select>
-        <select id="ef-mes"></select>
-      </div>
+      <button type="button" class="date-btn" id="ef-fecha-btn" onclick="openCal('ef-fecha-btn','ef-fecha-val')">
+        <i class="ti ti-calendar" aria-hidden="true"></i><span id="ef-fecha-lbl">Seleccioná una fecha</span>
+      </button>
+      <input type="hidden" id="ef-fecha-val">
     </div>
     <div class="fg"><label>Medio de pago</label><select id="ef-medio"><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Visa Galicia">Visa Galicia</option><option value="Master Galicia">Master Galicia</option><option value="Visa Nación">Visa Nación</option><option value="Master Nación">Master Nación</option></select></div>
     <div class="fg"><label>Detalle</label><textarea id="ef-detalle" placeholder="Descripción…"></textarea></div>
@@ -462,6 +477,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
       <button class="btn-cancel" onclick="closeModal('modalConcepto')">Cancelar</button>
       <button class="btn-submit" style="margin-top:0;height:46px" id="btnSaveConcepto" onclick="saveConcepto()"><i class="ti ti-device-floppy"></i>Guardar</button>
     </div>
+  </div>
+</div>
+
+<!-- CALENDAR PICKER -->
+<div id="calOverlay" class="cal-wrap" style="display:none" onclick="if(event.target===this)closeCal()">
+  <div class="cal-box">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calChangeMonth(-1)" aria-label="Mes anterior"><i class="ti ti-chevron-left"></i></button>
+      <span class="cal-title" id="calTitle"></span>
+      <button class="cal-nav" onclick="calChangeMonth(1)" aria-label="Mes siguiente"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <button class="cal-close" onclick="closeCal()">Cancelar</button>
   </div>
 </div>
 
@@ -1259,10 +1287,7 @@ function openEdit(idx){
     if(m===t.mes&&a===t.anio)opt.selected=true;
     mSel.appendChild(opt);
   }
-  // Extract day from periodo field if available
-  const periodoDay = t.detalle ? 1 : 1; // default 1
-  const savedDay = (()=>{ try{ const d=new Date(t.periodo||''); return isNaN(d)?1:d.getDate(); }catch(e){return 1;} })();
-  populateDiaSelect('ef-dia', savedDay);
+  setCalDate('ef-fecha-btn','ef-fecha-val',t.periodo||'');
   // Populate agrupador
   populateAgrupadorSelect('ef-agrupador', t.estructura, t.agrupador);
   // Wire cuenta change to update agrupador
@@ -1296,15 +1321,17 @@ async function confirmEdit(){
   const cc=document.getElementById('ef-cuenta').value;
   const imp=parseImporte(document.getElementById('ef-importe').value);
   if(!imp){showToast('Ingresá un importe');return;}
-  const[m,a]=document.getElementById('ef-mes').value.split('|').map(Number);
   const estado='Contable';
   const medio=document.getElementById('ef-medio').value;
   const detalle=document.getElementById('ef-detalle').value;
   const saldo=isIngreso?Math.abs(imp):-Math.abs(imp);
   const estructura=isIngreso?'2. Ingresos':t.estructura||'3. Gtos Fijos';
   const agrupador=document.getElementById('ef-agrupador').value||t.agrupador||'2. Servicios';
-  const edia=parseInt(document.getElementById('ef-dia').value)||1;
-  const periodo=new Date(a,m-1,edia).toISOString().split('T')[0];
+  const efFechaVal=document.getElementById('ef-fecha-val').value;
+  if(!efFechaVal){showToast('Seleccioná una fecha');return;}
+  const efDate=new Date(efFechaVal);
+  const m=efDate.getMonth()+1,a=efDate.getFullYear();
+  const periodo=efFechaVal;
   const row=[cc,'',detalle,medio,saldo,periodo,estado,t.imprevisto?'Imprevisto':'',m,a,estructura,agrupador];
 
   const btn=document.getElementById('btnConfirmEdit');
@@ -1474,13 +1501,16 @@ function renderNuevo(resetForm){
     const v=m+'|'+a;
     ms.innerHTML+='<option value="'+v+'"'+(v===curVal?' selected':'')+'>'+MONTHS[m-1]+' '+a+'</option>';
   }
-  populateDiaSelect('f-dia', now.getDate());
+  // Set default date to today
+  const todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   if(resetForm){
     fCuenta.selectedIndex=0;
     document.getElementById('f-importe').value='';
     document.getElementById('f-medio').selectedIndex=0;
     document.getElementById('f-detalle').value='';
-    populateDiaSelect('f-dia', now.getDate());
+    setCalDate('f-fecha-btn','f-fecha-val',todayStr);
+  } else if(!document.getElementById('f-fecha-val').value){
+    setCalDate('f-fecha-btn','f-fecha-val',todayStr);
   }
   updatePlaceholderClass(fCuenta);
   updatePlaceholderClass(document.getElementById('f-medio'));
@@ -1499,14 +1529,16 @@ async function guardarMovimiento(){
   if(!imp){showToast('Ingresá un importe');return;}
   if(!medio){showToast('Seleccioná un medio de pago');return;}
 
-  const[m,a]=document.getElementById('f-mes').value.split('|').map(Number);
   const estado='Contable';
   const saldo=tipo==='egreso'?-Math.abs(imp):Math.abs(imp);
   const cdata = getConceptoData(cc);
   const estructura = cdata ? cdata.estructura : (tipo==='ingreso'?'2. Ingresos':'3. Gtos Fijos');
   const agrupador = document.getElementById('f-agrupador').value || (cdata ? cdata.agrupador : (tipo==='ingreso'?'1. Ingresos':'2. Servicios'));
-  const dia=parseInt(document.getElementById('f-dia').value)||1;
-  const periodo=new Date(a,m-1,dia).toISOString().split('T')[0];
+  const fechaVal=document.getElementById('f-fecha-val').value;
+  if(!fechaVal){showToast('Seleccioná una fecha');return;}
+  const fDate=new Date(fechaVal);
+  const m=fDate.getMonth()+1,a=fDate.getFullYear();
+  const periodo=fechaVal;
   const row=[cc,'',detalle,medio,saldo,periodo,estado,'',m,a,estructura,agrupador];
   const btn=document.getElementById('btn-guardar');
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
@@ -1873,6 +1905,76 @@ function renderUserPill(){
 }
 function renderAll(){renderDash();renderUserPill();}
 
+// ── CALENDAR PICKER ──────────────────────────────────────────────────────────
+const MESES_CAL=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_CAL=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+let calState={year:0,month:0,selectedDate:null,btnId:null,valId:null,onSelect:null};
+
+function openCal(btnId,valId,onSelect){
+  const existing=document.getElementById(valId).value;
+  const now=new Date();
+  let y=now.getFullYear(),m=now.getMonth();
+  if(existing){const d=new Date(existing);if(!isNaN(d)){y=d.getFullYear();m=d.getMonth();calState.selectedDate=existing;}}
+  else{calState.selectedDate=null;}
+  calState={...calState,year:y,month:m,btnId,valId,onSelect:onSelect||null};
+  renderCal();
+  document.getElementById('calOverlay').style.display='flex';
+}
+
+function closeCal(){document.getElementById('calOverlay').style.display='none';}
+
+function calChangeMonth(d){
+  calState.month+=d;
+  if(calState.month>11){calState.month=0;calState.year++;}
+  if(calState.month<0){calState.month=11;calState.year--;}
+  renderCal();
+}
+
+function renderCal(){
+  document.getElementById('calTitle').textContent=MESES_CAL[calState.month]+' '+calState.year;
+  const grid=document.getElementById('calGrid');
+  let html=DIAS_CAL.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  const firstDay=new Date(calState.year,calState.month,1).getDay();
+  const daysInMonth=new Date(calState.year,calState.month+1,0).getDate();
+  const today=new Date();
+  // Empty cells before first day
+  for(let i=0;i<firstDay;i++) html+=`<div></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=calState.year+'-'+String(calState.month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const isToday=d===today.getDate()&&calState.month===today.getMonth()&&calState.year===today.getFullYear();
+    const isSel=dateStr===calState.selectedDate;
+    html+=`<button class="cal-day${isToday?' today':''}${isSel?' selected':''}" onclick="selectCalDay('${dateStr}')">${d}</button>`;
+  }
+  grid.innerHTML=html;
+}
+
+function selectCalDay(dateStr){
+  calState.selectedDate=dateStr;
+  // Update the hidden input
+  const valEl=document.getElementById(calState.valId);
+  if(valEl) valEl.value=dateStr;
+  // Update the button label
+  const btnEl=document.getElementById(calState.btnId);
+  if(btnEl){
+    const d=new Date(dateStr);
+    const MESES_CORTOS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const lbl=DIAS_CAL[d.getDay()+1]||DIAS_CAL[d.getDay()];
+    const span=btnEl.querySelector('span');
+    if(span) span.textContent=String(d.getUTCDate()).padStart(2,'0')+' '+MESES_CORTOS[d.getUTCMonth()]+' '+d.getUTCFullYear();
+  }
+  if(calState.onSelect) calState.onSelect(dateStr);
+  closeCal();
+}
+
+function setCalDate(btnId,valId,dateStr){
+  if(!dateStr) return;
+  document.getElementById(valId).value=dateStr;
+  const d=new Date(dateStr);
+  const MESES_CORTOS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const span=document.getElementById(btnId)?.querySelector('span');
+  if(span) span.textContent=String(d.getUTCDate()).padStart(2,'0')+' '+MESES_CORTOS[d.getUTCMonth()]+' '+d.getUTCFullYear();
+}
+
 // ── CUOTAS ────────────────────────────────────────────────────────────────────
 function parseCuotas(str){
   if(!str) return null;
@@ -2035,9 +2137,11 @@ async function procesarResumen(){
           {type:'document',source:{type:'base64',media_type:'application/pdf',data:resumenPdfBase64}},
           {type:'text',text:`Extraé todas las transacciones de este resumen de tarjeta de crédito o cuenta bancaria.
 Devolvé SOLO un JSON válido, sin texto adicional, con este formato exacto:
-{"transacciones":[{"fecha":"YYYY-MM-DD","descripcion":"NOMBRE COMERCIO","importe":1234.56,"cuotas":"1/1","es_costo_financiero":false}]}
+{"transacciones":[{"fecha":"YYYY-MM-DD","descripcion":"NOMBRE COMERCIO","importe":1234.56,"importeUSD":null,"cuotas":"1/1","es_costo_financiero":false}]}
 - fecha: en formato YYYY-MM-DD. Si el año no aparece, usá el año del cierre del resumen.
-- importe: número positivo siempre (el signo lo manejo yo)
+- importe: importe EN PESOS siempre (número positivo)
+- importeUSD: si el consumo original fue en dólares, ponés el importe en USD (número positivo). Si solo hay pesos, ponés null.
+- Para calcular el tipo de cambio cuando hay consumos en USD: buscá el impuesto de percepción o PAÍS (30% o 35% del consumo en USD) que aparece discriminado. Calculá: TC = importe_pesos / (importeUSD * 1.30) aproximadamente.
 - es_costo_financiero: true si es impuesto, sello, financiación, interés, comisión, cargo del banco
 - Incluí TODOS los consumos individuales, NO el saldo anterior ni el pago
 - NO incluyas totales ni subtotales`}
@@ -2067,6 +2171,7 @@ function buildResumenItems(txs){
       fecha:tx.fecha,
       descripcion:tx.descripcion,
       importe:parseFloat(tx.importe)||0,
+      importeUSD:tx.importeUSD||null,
       cuotas:tx.cuotas||'',
       financial,
       matched:matched?matched:null,
@@ -2094,7 +2199,7 @@ function buildResumenItems(txs){
   document.getElementById('resumen-btn-cargar').style.display='flex';
   document.getElementById('resumen-btn-close').style.display='none';
   renderResumenSummary();
-  switchResumenTab('todos');
+  switchResumenTab('nuevos');
 }
 
 function renderResumenSummary(){
@@ -2130,14 +2235,15 @@ function renderResumenList(){
   const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   function fmtD(fecha){try{const d=new Date(fecha);return String(d.getUTCDate()).padStart(2,'0')+'-'+MESES[d.getUTCMonth()];}catch(e){return fecha;}}
 
-  const agrs = (est)=>getAgrupadores(est).map(a=>`<option value="${a}">${a.replace(/^\d+\.\s*/,'')}</option>`).join('');
+  const agrs = (est)=>{
+    // Get agrupadores for this structure, falling back to all if empty
+    let list = getAgrupadores(est);
+    if(!list.length) list = [...new Set(conceptos.map(c=>c.agrupador).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+    return list.map(a=>`<option value="${a}">${a.replace(/^\d+\.\s*/,'')}</option>`).join('');
+  };
   const cpts = (est,isIng)=>conceptos.filter(c=>isIng?c.estructura==='2. Ingresos':c.estructura!=='2. Ingresos').map(c=>`<option value="${c.concepto}">${c.concepto}</option>`).join('');
 
   let html=items.map(item=>{
-    const statusClass=item.financial?'financial':item.matched?'matched':'new';
-    const statusIcon=item.financial?'ti-coin':item.matched?'ti-check':'ti-plus';
-    const toggleClass=item.incluir?'on':'off';
-    const toggleIcon=item.incluir?'ti-check':'ti-x';
     const editOpen=item.expanded?'open':'';
     const allConceptos=conceptos.filter(c=>c.estructura!=='2. Ingresos').map(c=>`<option value="${c.concepto}"${c.concepto===item.concepto?' selected':''}>${c.concepto}</option>`).join('');
     const cuotasInfo = parseCuotas(item.cuotas);
@@ -2155,7 +2261,7 @@ function renderResumenList(){
           ${cuotasInfo&&cuotasInfo.total>cuotasInfo.current?`<div class="rsum-match" style="color:var(--amber)">${cuotasInfo.total-cuotasInfo.current} cuota(s) futura(s) se cargarán automáticamente</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:6px">
-          <div class="rsum-amt">-${fmt(item.importe)}</div>
+          <div class="rsum-amt">${item.importeUSD?`-$ ${fmt(item.importe)} (USD ${item.importeUSD.toFixed(2)})`:`-$ ${fmt(item.importe)}`}</div>
           <i class="ti ti-chevron-${item.expanded?'up':'down'}" style="font-size:14px;color:var(--text3)" aria-hidden="true"></i>
         </div>
       </div>
@@ -2172,8 +2278,8 @@ function renderResumenList(){
           <div class="fg"><label>Fecha</label>
             <input type="date" value="${item.fecha}" onchange="updateResumenItem(${item.id},'fecha',this.value)" style="height:36px;font-size:12px">
           </div>
-          <div class="fg"><label>Importe</label>
-            <input type="number" value="${item.importe}" onchange="updateResumenItem(${item.id},'importe',parseFloat(this.value))" style="height:36px;font-size:12px">
+          <div class="fg"><label>Importe${item.importeUSD?` (USD ${item.importeUSD.toFixed(2)})`:''}  </label>
+            <input type="text" value="$ ${fmt(item.importe)}" onchange="updateResumenItem(${item.id},'importe',parseImporte(this.value))" style="height:36px;font-size:12px">
           </div>
         </div>
         <div class="fg" style="margin-top:4px"><label>Detalle</label>
