@@ -285,10 +285,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
   <div class="screen" id="screen-nuevo">
     <div class="header"><div class="header-title">Nuevo movimiento</div></div>
     <div class="form-wrap">
-      <div class="type-toggle">
+      <div class="type-toggle" style="grid-template-columns:1fr 1fr 1fr">
         <button class="type-btn active" id="btn-egr" onclick="setTipo('egreso')"><i class="ti ti-arrow-down-right"></i>Egreso</button>
         <button class="type-btn" id="btn-ing" onclick="setTipo('ingreso')"><i class="ti ti-arrow-up-right"></i>Ingreso</button>
-        <button class="type-btn" id="btn-resumen" onclick="showScreen('resumen')"><i class="ti ti-sparkles"></i>Procesar</button>
+        <button class="type-btn" id="btn-resumen" onclick="showScreen('resumen')"><i class="ti ti-file-invoice"></i>Resumen</button>
       </div>
       <div class="fg"><label>Concepto</label><select id="f-cuenta"></select></div>
       <div class="fg"><label>Agrupador</label><select id="f-agrupador"></select></div>
@@ -330,8 +330,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
   <!-- RESUMEN SCREEN -->
   <div class="screen" id="screen-resumen">
     <div class="header">
-      <div class="header-title">Procesar resumen</div>
-      <button class="add-btn" onclick="showScreen('nuevo')" aria-label="Volver" style="background:none"><i class="ti ti-x"></i></button>
+      <div class="header-title">Resumen</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="add-btn" onclick="cancelarResumen()" id="resumen-btn-cancel" style="display:none;font-size:13px;width:auto;padding:0 10px">Cancelar</button>
+        <button class="add-btn" onclick="cargarResumen()" id="resumen-btn-cargar" style="display:none;font-size:13px;width:auto;padding:0 10px;background:var(--text);color:var(--bg)">Cargar</button>
+        <button class="add-btn" onclick="showScreen('nuevo')" id="resumen-btn-close" aria-label="Cerrar"><i class="ti ti-x"></i></button>
+      </div>
     </div>
     <div id="resumen-step-upload">
       <div style="padding:0 16px 20px">
@@ -384,11 +388,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
         <button class="resumen-tab" id="rtab-conciliados" onclick="switchResumenTab('conciliados')">Conciliados</button>
       </div>
       <div id="resumen-list" style="padding:0 16px 100px"></div>
-      <div style="position:sticky;bottom:calc(var(--nav-h));left:0;right:0;padding:12px 16px;background:var(--surface);border-top:1px solid var(--border)">
-        <button class="btn-submit" id="resumen-cargar-btn" onclick="cargarResumen()">
-          <i class="ti ti-download"></i><span id="resumen-cargar-label">Cargar registros</span>
-        </button>
-      </div>
+
     </div>
   </div>
 </div>
@@ -786,7 +786,13 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
-  document.getElementById('nav-'+id).classList.add('active');
+  const navEl = document.getElementById('nav-'+id);
+  if(navEl) navEl.classList.add('active');
+  // Hide nav bar during data entry screens
+  const hideNav = id==='nuevo'||id==='resumen';
+  document.getElementById('appNav').style.display = hideNav ? 'none' : 'flex';
+  // Adjust screens bottom padding
+  document.getElementById('appScreens').style.bottom = hideNav ? '0' : 'var(--nav-h)';
   if(id==='home')renderDash();if(id==='eerr')renderEERR();if(id==='proj')renderProj();if(id==='nuevo')renderNuevo(false);if(id==='params')renderParams();if(id==='resumen')initResumenScreen();
 }
 
@@ -1922,6 +1928,9 @@ function initResumenScreen(){
   if(el) el.value = saved;
   document.getElementById('resumen-step-upload').style.display='block';
   document.getElementById('resumen-step-conciliacion').style.display='none';
+  document.getElementById('resumen-btn-cancel').style.display='none';
+  document.getElementById('resumen-btn-cargar').style.display='none';
+  document.getElementById('resumen-btn-close').style.display='flex';
   resumenPdfBase64=null;
   document.getElementById('resumen-procesar-btn').disabled=true;
   document.getElementById('resumen-procesar-btn').style.opacity='0.4';
@@ -1929,6 +1938,15 @@ function initResumenScreen(){
   dz.classList.remove('has-file');
   document.getElementById('resumen-file-label').textContent='Tocá para subir el PDF';
   document.getElementById('resumen-dropzone').querySelector('i').className='ti ti-file-upload';
+}
+
+function cancelarResumen(){
+  document.getElementById('resumen-step-conciliacion').style.display='none';
+  document.getElementById('resumen-step-upload').style.display='block';
+  document.getElementById('resumen-btn-cancel').style.display='none';
+  document.getElementById('resumen-btn-cargar').style.display='none';
+  document.getElementById('resumen-btn-close').style.display='flex';
+  resumenItems=[];resumenPdfBase64=null;
 }
 
 function onResumenFileChange(input){
@@ -2003,7 +2021,8 @@ function buildResumenItems(txs){
       cuotas:tx.cuotas||'',
       financial,
       matched:matched?matched:null,
-      incluir:!matched, // conciliados se excluyen por defecto
+      incluir:!matched, detalle:"",
+      detalle:'', // conciliados se excluyen por defecto
       concepto:guess.concepto,
       agrupador:guess.agrupador,
       estructura:guess.estructura,
@@ -2013,6 +2032,9 @@ function buildResumenItems(txs){
 
   document.getElementById('resumen-step-upload').style.display='none';
   document.getElementById('resumen-step-conciliacion').style.display='block';
+  document.getElementById('resumen-btn-cancel').style.display='flex';
+  document.getElementById('resumen-btn-cargar').style.display='flex';
+  document.getElementById('resumen-btn-close').style.display='none';
   renderResumenSummary();
   switchResumenTab('todos');
 }
@@ -2090,6 +2112,9 @@ function renderResumenList(){
             <input type="number" value="${item.importe}" onchange="updateResumenItem(${item.id},'importe',parseFloat(this.value))" style="height:36px;font-size:12px">
           </div>
         </div>
+        <div class="fg" style="margin-top:4px"><label>Detalle</label>
+          <input type="text" value="${item.detalle||''}" placeholder="Descripción…" onchange="updateResumenItem(${item.id},'detalle',this.value)" style="height:36px;font-size:12px;width:100%">
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2119,35 +2144,80 @@ function toggleResumenExpand(id){
 function updateResumenItem(id,field,value){
   const item=resumenItems.find(i=>i.id===id);
   if(!item)return;
+  const oldConcepto=item.concepto;
   item[field]=value;
   if(field==='concepto'){
     const cdata=getConceptoData(value);
     if(cdata){item.estructura=cdata.estructura;item.agrupador=cdata.agrupador;}
+    // Bulk update existing transactions with old concept name
+    if(oldConcepto!==value) bulkUpdateConcepto(oldConcepto,value,item.agrupador,item.estructura);
+  }
+  if(field==='agrupador'){
+    // Also bulk update agrupador for all matching transactions
+    bulkUpdateConcepto(item.concepto,item.concepto,value,item.estructura);
   }
 }
 
 async function cargarResumen(){
   const toLoad=resumenItems.filter(i=>i.incluir&&!i.matched);
-  if(!toLoad.length){showToast('No hay registros nuevos seleccionados');return;}
-  const btn=document.getElementById('resumen-cargar-btn');
-  btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
+  const toUpdate=resumenItems.filter(i=>i.matched); // perfeccionar conciliados
+  if(!toLoad.length&&!toUpdate.length){showToast('No hay registros para procesar');return;}
+
+  const btn=document.getElementById('resumen-btn-cargar');
+  btn.disabled=true;btn.textContent='…';
 
   let ok=0;
+  // 1. Cargar registros nuevos
   for(const item of toLoad){
     const d=new Date(item.fecha);
-    const m=d.getUTCMonth()+1,a=d.getUTCFullYear(),dia=d.getUTCDate();
+    const m=d.getUTCMonth()+1,a=d.getUTCFullYear();
     const periodo=item.fecha;
     const saldo=-Math.abs(item.importe);
-    const row=[item.concepto,'',item.cuotas?'Cuota '+item.cuotas:'',resumenMedio,saldo,periodo,'Contable','',m,a,item.estructura,item.agrupador];
+    const det=item.detalle||(item.cuotas?'Cuota '+item.cuotas:'');
+    const row=[item.concepto,'',det,resumenMedio,saldo,periodo,'Contable','',m,a,item.estructura,item.agrupador];
     const ri=await appendRow(row);
     if(ri){
       transactions.push({id:transactions.length,cc:item.concepto,saldo,mes:m,anio:a,estado:'Contable',medio:resumenMedio,detalle:item.cuotas?'Cuota '+item.cuotas:'',periodo,estructura:item.estructura,agrupador:item.agrupador,ri});
       ok++;
     }
   }
-  btn.disabled=false;btn.innerHTML='<i class="ti ti-download"></i><span id="resumen-cargar-label">Cargar registros</span>';
-  showToast(ok+' registros cargados');
-  if(ok>0){renderDash();renderEERR();showScreen('home');}
+
+  // 2. Perfeccionar conciliados — actualizar fecha e importe exacto en Excel
+  for(const item of toUpdate){
+    const t=item.matched;
+    if(!t||!t.ri) continue;
+    const d=new Date(item.fecha);
+    const m=d.getUTCMonth()+1,a=d.getUTCFullYear();
+    const saldo=-Math.abs(item.importe);
+    const periodo=item.fecha;
+    const det2=item.detalle||t.detalle||'';
+    const row=[t.cc,t.proveedor||'',det2,t.medio||resumenMedio,saldo,periodo,t.estado||'Contable',t.imprevisto?'Imprevisto':'',m,a,t.estructura,t.agrupador];
+    const ok2=await updateRowInOneDrive(t.ri,row);
+    if(ok2){
+      const idx=transactions.findIndex(tx=>tx.id===t.id);
+      if(idx>=0) transactions[idx]={...transactions[idx],saldo,mes:m,anio:a,periodo};
+    }
+  }
+
+  btn.disabled=false;btn.textContent='Cargar';
+  const msg=`${toLoad.length} cargados${toUpdate.length?' · '+toUpdate.length+' perfeccionados':''}`;
+  showToast(msg);
+  if(ok>0||toUpdate.length>0){renderDash();renderEERR();showScreen('home');}
+}
+
+// Bulk update: when concepto/agrupador changes in resumen, apply to all matching transactions in Base
+async function bulkUpdateConcepto(oldConcepto, newConcepto, newAgrupador, newEstructura){
+  if(!fileId||!oldConcepto||oldConcepto===newConcepto) return;
+  const toUpdate=transactions.filter(t=>t.cc===oldConcepto);
+  if(!toUpdate.length) return;
+  setSS('syncing','Actualizando conceptos…');
+  for(const t of toUpdate){
+    const row=[newConcepto,t.proveedor||'',t.detalle||'',t.medio||'',t.saldo,t.periodo||'',t.estado||'Contable',t.imprevisto?'Imprevisto':'',t.mes,t.anio,newEstructura,newAgrupador];
+    await updateRowInOneDrive(t.ri,row);
+    t.cc=newConcepto;t.agrupador=newAgrupador;t.estructura=newEstructura;
+  }
+  setSS('ok','Sincronizado');
+  showToast('Concepto actualizado en '+toUpdate.length+' registros');
 }
 async function init() {
   // 1. Check for auth code in URL (coming back from Microsoft login)
