@@ -117,6 +117,36 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 .user-avatar{width:28px;height:28px;border-radius:50%;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;font-family:var(--mono);}
 .user-name{font-size:13px;font-weight:500;}
 .btn-logout{background:none;border:none;cursor:pointer;color:var(--text3);font-size:15px;padding:2px;margin-left:2px;}
+.upload-dropzone{background:var(--surface);border:1.5px dashed var(--border2);border-radius:var(--radius);padding:28px 20px;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.upload-dropzone:active{background:var(--surface2);}
+.upload-dropzone i{font-size:28px;color:var(--text3);}
+.upload-dropzone span{font-size:13px;color:var(--text2);}
+.upload-dropzone.has-file{border-style:solid;border-color:var(--green);background:var(--green-bg);}
+.upload-dropzone.has-file i,.upload-dropzone.has-file span{color:var(--green);}
+.resumen-tab{flex:1;height:32px;border-radius:var(--radius-sm);border:0.5px solid var(--border2);background:none;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);}
+.resumen-tab.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.resumen-row{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;}
+.resumen-row-head{display:flex;align-items:center;padding:11px 14px;gap:10px;}
+.rsum-status{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.rsum-status.new{background:var(--green-bg);color:var(--green);}
+.rsum-status.matched{background:var(--surface2);color:var(--text3);}
+.rsum-status.financial{background:var(--amber-bg);color:var(--amber);}
+.rsum-toggle{width:24px;height:24px;border-radius:6px;border:0.5px solid var(--border2);background:none;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;flex-shrink:0;}
+.rsum-toggle.on{background:var(--green);border-color:var(--green);color:#fff;}
+.rsum-toggle.off{background:var(--surface2);color:var(--text3);}
+.rsum-body{flex:1;min-width:0;}
+.rsum-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rsum-detail{font-size:11px;color:var(--text3);margin-top:1px;}
+.rsum-amt{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--red);white-space:nowrap;}
+.rsum-match{font-size:10px;color:var(--text3);margin-top:2px;}
+.rsum-edit{padding:10px 14px;border-top:1px solid var(--border);display:none;}
+.rsum-edit.open{display:block;}
+.rsum-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.rsum-edit-grid .fg{margin-bottom:0;}
+.rsum-edit-grid .fg label{font-size:9px;}
+.rsum-stat{flex:1;text-align:center;}
+.rsum-stat-num{font-size:20px;font-weight:500;font-family:var(--mono);}
+.rsum-stat-label{font-size:10px;color:var(--text3);margin-top:2px;}
 .add-btn{width:34px;height:34px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:center;font-size:18px;}
 .params-tabs{display:flex;border-bottom:1px solid var(--border);}
 .params-tab{flex:1;padding:11px 0;font-size:14px;font-weight:500;text-align:center;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--sans);transition:color .15s;}
@@ -258,6 +288,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
       <div class="type-toggle">
         <button class="type-btn active" id="btn-egr" onclick="setTipo('egreso')"><i class="ti ti-arrow-down-right"></i>Egreso</button>
         <button class="type-btn" id="btn-ing" onclick="setTipo('ingreso')"><i class="ti ti-arrow-up-right"></i>Ingreso</button>
+        <button class="type-btn" id="btn-resumen" onclick="showScreen('resumen')"><i class="ti ti-sparkles"></i>Procesar</button>
       </div>
       <div class="fg"><label>Concepto</label><select id="f-cuenta"></select></div>
       <div class="fg"><label>Agrupador</label><select id="f-agrupador"></select></div>
@@ -293,6 +324,71 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
     <div id="params-ajustes" style="display:none">
       <div id="params-ajustes-body" style="padding:0 16px"></div>
 
+    </div>
+  </div>
+
+  <!-- RESUMEN SCREEN -->
+  <div class="screen" id="screen-resumen">
+    <div class="header">
+      <div class="header-title">Procesar resumen</div>
+      <button class="add-btn" onclick="showScreen('nuevo')" aria-label="Volver" style="background:none"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="resumen-step-upload">
+      <div style="padding:0 16px 20px">
+        <!-- API Key -->
+        <div class="fg" id="resumen-api-wrap">
+          <label>API Key de Anthropic</label>
+          <input type="password" id="resumen-apikey" placeholder="sk-ant-..." style="font-family:var(--mono);font-size:12px">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Se guarda en tu dispositivo. Usala solo en dispositivos de confianza.</div>
+        </div>
+        <div class="fg">
+          <label>Banco / Tarjeta</label>
+          <select id="resumen-banco">
+            <option value="visa_nacion">Visa Nación</option>
+            <option value="master_nacion">Master Nación</option>
+            <option value="visa_galicia">Visa Galicia</option>
+            <option value="master_galicia">Master Galicia</option>
+            <option value="cuenta_galicia">Cuenta Galicia</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Medio de pago a asignar</label>
+          <select id="resumen-medio">
+            <option value="Visa Nación">Visa Nación</option>
+            <option value="Master Nación">Master Nación</option>
+            <option value="Visa Galicia">Visa Galicia</option>
+            <option value="Master Galicia">Master Galicia</option>
+            <option value="Transferencia">Transferencia</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>PDF del resumen</label>
+          <div class="upload-dropzone" id="resumen-dropzone" onclick="document.getElementById('resumen-file').click()">
+            <i class="ti ti-file-upload" aria-hidden="true"></i>
+            <span id="resumen-file-label">Tocá para subir el PDF</span>
+          </div>
+          <input type="file" id="resumen-file" accept=".pdf" style="display:none" onchange="onResumenFileChange(this)">
+        </div>
+        <button class="btn-submit" id="resumen-procesar-btn" onclick="procesarResumen()" disabled style="opacity:0.4">
+          <i class="ti ti-sparkles"></i>Procesar
+        </button>
+      </div>
+    </div>
+
+    <!-- CONCILIACIÓN -->
+    <div id="resumen-step-conciliacion" style="display:none">
+      <div id="resumen-summary-bar" style="display:flex;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);gap:0"></div>
+      <div style="display:flex;gap:6px;padding:10px 16px 6px">
+        <button class="resumen-tab active" id="rtab-todos" onclick="switchResumenTab('todos')">Todos</button>
+        <button class="resumen-tab" id="rtab-nuevos" onclick="switchResumenTab('nuevos')">Nuevos</button>
+        <button class="resumen-tab" id="rtab-conciliados" onclick="switchResumenTab('conciliados')">Conciliados</button>
+      </div>
+      <div id="resumen-list" style="padding:0 16px 100px"></div>
+      <div style="position:sticky;bottom:calc(var(--nav-h));left:0;right:0;padding:12px 16px;background:var(--surface);border-top:1px solid var(--border)">
+        <button class="btn-submit" id="resumen-cargar-btn" onclick="cargarResumen()">
+          <i class="ti ti-download"></i><span id="resumen-cargar-label">Cargar registros</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -691,7 +787,7 @@ function showScreen(id){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
   document.getElementById('nav-'+id).classList.add('active');
-  if(id==='home')renderDash();if(id==='eerr')renderEERR();if(id==='proj')renderProj();if(id==='nuevo')renderNuevo(false);if(id==='params')renderParams();
+  if(id==='home')renderDash();if(id==='eerr')renderEERR();if(id==='proj')renderProj();if(id==='nuevo')renderNuevo(false);if(id==='params')renderParams();if(id==='resumen')initResumenScreen();
 }
 
 function od(off){const d=new Date(2025,off,1);return{mes:d.getMonth()+1,anio:d.getFullYear(),label:MONTHS[d.getMonth()]+' '+d.getFullYear()};}
@@ -1771,7 +1867,288 @@ function renderUserPill(){
 }
 function renderAll(){renderDash();renderUserPill();}
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// ── RESUMEN ───────────────────────────────────────────────────────────────────
+let resumenItems = []; // parsed items from PDF
+let resumenMedio = '';
+let resumenPdfBase64 = null;
+
+const FINANCIAL_KEYWORDS = ['impuesto','sello','financiaci','interes','cargo','comisi','mora','punitori','percepc','iva','tasa'];
+
+function isFinancialCharge(desc){
+  const d = desc.toLowerCase();
+  return FINANCIAL_KEYWORDS.some(k=>d.includes(k));
+}
+
+function getFinancialConcepto(){
+  const c = conceptos.find(c=>c.estructura==='5. Gtos Financieros'&&c.agrupador&&c.agrupador.toLowerCase().includes('tarjeta'));
+  return c ? {concepto:c.concepto,agrupador:c.agrupador,estructura:'5. Gtos Financieros'} : {concepto:'Impuestos de tarjetas',agrupador:'2. Tarjeta de crédito',estructura:'5. Gtos Financieros'};
+}
+
+function guessConcepto(desc){
+  const d = desc.toLowerCase();
+  // Match against conceptos list
+  for(const c of conceptos){
+    if(c.estructura==='2. Ingresos') continue;
+    const words = c.concepto.toLowerCase().split(' ');
+    if(words.some(w=>w.length>3&&d.includes(w))) return {concepto:c.concepto,agrupador:c.agrupador,estructura:c.estructura};
+  }
+  // Keyword-based fallback
+  if(d.includes('farmacia')||d.includes('salud')||d.includes('medic')) return {concepto:'Salud',agrupador:'5. Salud',estructura:'4. Gtos Variables'};
+  if(d.includes('ypf')||d.includes('shell')||d.includes('petro')||d.includes('nafta')) return {concepto:'Nafta',agrupador:'2. Movilidad',estructura:'4. Gtos Variables'};
+  if(d.includes('restaur')||d.includes('peña')||d.includes('mulen')||d.includes('resto')) return {concepto:'Salidas',agrupador:'3. Salidas',estructura:'4. Gtos Variables'};
+  if(d.includes('super')||d.includes('mercado')||d.includes('fruter')||d.includes('chino')||d.includes('lucho')||d.includes('carref')) return {concepto:'Comida',agrupador:'1. Comida',estructura:'4. Gtos Variables'};
+  if(d.includes('zara')||d.includes('sport')||d.includes('ropa')||d.includes('libreria')||d.includes('libro')) return {concepto:'Salidas',agrupador:'3. Salidas',estructura:'4. Gtos Variables'};
+  return {concepto:'Otros',agrupador:'1. Comida',estructura:'4. Gtos Variables'};
+}
+
+function matchTransaction(item){
+  const margin = Math.abs(item.importe) * 0.10;
+  const matches = transactions.filter(t=>{
+    const diffAmt = Math.abs(Math.abs(t.saldo)-Math.abs(item.importe));
+    if(diffAmt > margin) return false;
+    // Date within 45 days
+    try{
+      const tDate = new Date(t.periodo||t.anio+'-'+String(t.mes).padStart(2,'0')+'-01');
+      const iDate = new Date(item.fecha);
+      return Math.abs(tDate-iDate) < 45*86400000;
+    }catch(e){return false;}
+  });
+  return matches.length>0 ? matches[0] : null;
+}
+
+function initResumenScreen(){
+  const saved = localStorage.getItem('anthropic_key')||'';
+  const el = document.getElementById('resumen-apikey');
+  if(el) el.value = saved;
+  document.getElementById('resumen-step-upload').style.display='block';
+  document.getElementById('resumen-step-conciliacion').style.display='none';
+  resumenPdfBase64=null;
+  document.getElementById('resumen-procesar-btn').disabled=true;
+  document.getElementById('resumen-procesar-btn').style.opacity='0.4';
+  const dz=document.getElementById('resumen-dropzone');
+  dz.classList.remove('has-file');
+  document.getElementById('resumen-file-label').textContent='Tocá para subir el PDF';
+  document.getElementById('resumen-dropzone').querySelector('i').className='ti ti-file-upload';
+}
+
+function onResumenFileChange(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    resumenPdfBase64=e.target.result.split(',')[1];
+    const dz=document.getElementById('resumen-dropzone');
+    dz.classList.add('has-file');
+    dz.querySelector('i').className='ti ti-file-check';
+    document.getElementById('resumen-file-label').textContent=file.name;
+    const btn=document.getElementById('resumen-procesar-btn');
+    btn.disabled=false;btn.style.opacity='1';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function procesarResumen(){
+  const apiKey=document.getElementById('resumen-apikey').value.trim();
+  if(!apiKey){showToast('Ingresá la API key de Anthropic');return;}
+  if(!resumenPdfBase64){showToast('Subí el PDF primero');return;}
+  localStorage.setItem('anthropic_key',apiKey);
+  resumenMedio=document.getElementById('resumen-medio').value;
+
+  const btn=document.getElementById('resumen-procesar-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span> Procesando…';
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:4000,
+        messages:[{role:'user',content:[
+          {type:'document',source:{type:'base64',media_type:'application/pdf',data:resumenPdfBase64}},
+          {type:'text',text:`Extraé todas las transacciones de este resumen de tarjeta de crédito o cuenta bancaria.
+Devolvé SOLO un JSON válido, sin texto adicional, con este formato exacto:
+{"transacciones":[{"fecha":"YYYY-MM-DD","descripcion":"NOMBRE COMERCIO","importe":1234.56,"cuotas":"1/1","es_costo_financiero":false}]}
+- fecha: en formato YYYY-MM-DD. Si el año no aparece, usá el año del cierre del resumen.
+- importe: número positivo siempre (el signo lo manejo yo)
+- es_costo_financiero: true si es impuesto, sello, financiación, interés, comisión, cargo del banco
+- Incluí TODOS los consumos individuales, NO el saldo anterior ni el pago
+- NO incluyas totales ni subtotales`}
+        ]}]
+      })
+    });
+    const data=await resp.json();
+    if(data.error) throw new Error(data.error.message);
+    const text=data.content[0].text.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(text);
+    buildResumenItems(parsed.transacciones||[]);
+  }catch(e){
+    showToast('Error al procesar: '+e.message.slice(0,60));
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-sparkles"></i>Procesar';
+    return;
+  }
+  btn.disabled=false;btn.innerHTML='<i class="ti ti-sparkles"></i>Procesar';
+}
+
+function buildResumenItems(txs){
+  resumenItems=txs.map((tx,i)=>{
+    const financial=tx.es_costo_financiero||isFinancialCharge(tx.descripcion);
+    const matched=matchTransaction(tx);
+    const guess=financial?getFinancialConcepto():guessConcepto(tx.descripcion);
+    return {
+      id:i,
+      fecha:tx.fecha,
+      descripcion:tx.descripcion,
+      importe:parseFloat(tx.importe)||0,
+      cuotas:tx.cuotas||'',
+      financial,
+      matched:matched?matched:null,
+      incluir:!matched, // conciliados se excluyen por defecto
+      concepto:guess.concepto,
+      agrupador:guess.agrupador,
+      estructura:guess.estructura,
+      expanded:false
+    };
+  });
+
+  document.getElementById('resumen-step-upload').style.display='none';
+  document.getElementById('resumen-step-conciliacion').style.display='block';
+  renderResumenSummary();
+  switchResumenTab('todos');
+}
+
+function renderResumenSummary(){
+  const nuevos=resumenItems.filter(i=>!i.matched&&i.incluir).length;
+  const conciliados=resumenItems.filter(i=>i.matched).length;
+  const total=resumenItems.length;
+  document.getElementById('resumen-summary-bar').innerHTML=`
+    <div class="rsum-stat"><div class="rsum-stat-num" style="color:var(--green)">${nuevos}</div><div class="rsum-stat-label">A cargar</div></div>
+    <div class="rsum-stat"><div class="rsum-stat-num" style="color:var(--text3)">${conciliados}</div><div class="rsum-stat-label">Conciliados</div></div>
+    <div class="rsum-stat"><div class="rsum-stat-num">${total}</div><div class="rsum-stat-label">Total</div></div>`;
+  const label=`Cargar ${nuevos} registro${nuevos!==1?'s':''}`;
+  document.getElementById('resumen-cargar-label').textContent=label;
+  // Update tab counts
+  document.getElementById('rtab-todos').textContent='Todos ('+total+')';
+  document.getElementById('rtab-nuevos').textContent='Nuevos ('+resumenItems.filter(i=>!i.matched).length+')';
+  document.getElementById('rtab-conciliados').textContent='Conciliados ('+conciliados+')';
+}
+
+let resumenCurrentTab='todos';
+function switchResumenTab(tab){
+  resumenCurrentTab=tab;
+  ['todos','nuevos','conciliados'].forEach(t=>{
+    document.getElementById('rtab-'+t).classList.toggle('active',t===tab);
+  });
+  renderResumenList();
+}
+
+function renderResumenList(){
+  const items = resumenCurrentTab==='nuevos' ? resumenItems.filter(i=>!i.matched) :
+                resumenCurrentTab==='conciliados' ? resumenItems.filter(i=>i.matched) :
+                resumenItems;
+
+  const MESES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function fmtD(fecha){try{const d=new Date(fecha);return String(d.getUTCDate()).padStart(2,'0')+'-'+MESES[d.getUTCMonth()];}catch(e){return fecha;}}
+
+  const agrs = (est)=>getAgrupadores(est).map(a=>`<option value="${a}">${a.replace(/^\d+\.\s*/,'')}</option>`).join('');
+  const cpts = (est,isIng)=>conceptos.filter(c=>isIng?c.estructura==='2. Ingresos':c.estructura!=='2. Ingresos').map(c=>`<option value="${c.concepto}">${c.concepto}</option>`).join('');
+
+  let html=items.map(item=>{
+    const statusClass=item.financial?'financial':item.matched?'matched':'new';
+    const statusIcon=item.financial?'ti-coin':item.matched?'ti-check':'ti-plus';
+    const toggleClass=item.incluir?'on':'off';
+    const toggleIcon=item.incluir?'ti-check':'ti-x';
+    const editOpen=item.expanded?'open':'';
+    const allConceptos=conceptos.filter(c=>c.estructura!=='2. Ingresos').map(c=>`<option value="${c.concepto}"${c.concepto===item.concepto?' selected':''}>${c.concepto}</option>`).join('');
+
+    return `<div class="resumen-row" id="rrow-${item.id}">
+      <div class="resumen-row-head">
+        <button class="rsum-toggle ${toggleClass}" onclick="toggleResumenItem(${item.id})" aria-label="Incluir/Excluir"><i class="ti ${toggleIcon}"></i></button>
+        <div class="rsum-status ${statusClass}"><i class="ti ${statusIcon}" aria-hidden="true"></i></div>
+        <div class="rsum-body" onclick="toggleResumenExpand(${item.id})" style="cursor:pointer">
+          <div class="rsum-name">${item.descripcion}${item.cuotas?' <span style="font-size:10px;color:var(--text3)">('+item.cuotas+')</span>':''}</div>
+          <div class="rsum-detail">${fmtD(item.fecha)} · ${item.concepto}${item.matched?'':''}</div>
+          ${item.matched?`<div class="rsum-match">≈ ya registrado como "${item.matched.cc}" (${fmt(item.matched.saldo)})</div>`:''}
+        </div>
+        <div class="rsum-amt">-${fmt(item.importe)}</div>
+        <i class="ti ti-chevron-${item.expanded?'up':'down'}" style="font-size:14px;color:var(--text3);flex-shrink:0" aria-hidden="true"></i>
+      </div>
+      <div class="rsum-edit ${editOpen}">
+        <div class="rsum-edit-grid">
+          <div class="fg"><label>Concepto</label>
+            <select onchange="updateResumenItem(${item.id},'concepto',this.value)" style="height:36px;font-size:12px">${allConceptos}</select>
+          </div>
+          <div class="fg"><label>Agrupador</label>
+            <select id="ragr-${item.id}" onchange="updateResumenItem(${item.id},'agrupador',this.value)" style="height:36px;font-size:12px">${agrs(item.estructura)}</select>
+          </div>
+        </div>
+        <div class="rsum-edit-grid">
+          <div class="fg"><label>Fecha</label>
+            <input type="date" value="${item.fecha}" onchange="updateResumenItem(${item.id},'fecha',this.value)" style="height:36px;font-size:12px">
+          </div>
+          <div class="fg"><label>Importe</label>
+            <input type="number" value="${item.importe}" onchange="updateResumenItem(${item.id},'importe',parseFloat(this.value))" style="height:36px;font-size:12px">
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('resumen-list').innerHTML=html||'<div class="empty"><i class="ti ti-inbox"></i><p>Sin registros en esta categoría</p></div>';
+  // Set correct agrupador selected values
+  items.forEach(item=>{
+    const sel=document.getElementById('ragr-'+item.id);
+    if(sel) sel.value=item.agrupador;
+  });
+}
+
+function toggleResumenItem(id){
+  const item=resumenItems.find(i=>i.id===id);
+  if(!item)return;
+  item.incluir=!item.incluir;
+  renderResumenList();
+  renderResumenSummary();
+}
+
+function toggleResumenExpand(id){
+  const item=resumenItems.find(i=>i.id===id);
+  if(!item)return;
+  item.expanded=!item.expanded;
+  renderResumenList();
+}
+
+function updateResumenItem(id,field,value){
+  const item=resumenItems.find(i=>i.id===id);
+  if(!item)return;
+  item[field]=value;
+  if(field==='concepto'){
+    const cdata=getConceptoData(value);
+    if(cdata){item.estructura=cdata.estructura;item.agrupador=cdata.agrupador;}
+  }
+}
+
+async function cargarResumen(){
+  const toLoad=resumenItems.filter(i=>i.incluir&&!i.matched);
+  if(!toLoad.length){showToast('No hay registros nuevos seleccionados');return;}
+  const btn=document.getElementById('resumen-cargar-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>';
+
+  let ok=0;
+  for(const item of toLoad){
+    const d=new Date(item.fecha);
+    const m=d.getUTCMonth()+1,a=d.getUTCFullYear(),dia=d.getUTCDate();
+    const periodo=item.fecha;
+    const saldo=-Math.abs(item.importe);
+    const row=[item.concepto,'',item.cuotas?'Cuota '+item.cuotas:'',resumenMedio,saldo,periodo,'Contable','',m,a,item.estructura,item.agrupador];
+    const ri=await appendRow(row);
+    if(ri){
+      transactions.push({id:transactions.length,cc:item.concepto,saldo,mes:m,anio:a,estado:'Contable',medio:resumenMedio,detalle:item.cuotas?'Cuota '+item.cuotas:'',periodo,estructura:item.estructura,agrupador:item.agrupador,ri});
+      ok++;
+    }
+  }
+  btn.disabled=false;btn.innerHTML='<i class="ti ti-download"></i><span id="resumen-cargar-label">Cargar registros</span>';
+  showToast(ok+' registros cargados');
+  if(ok>0){renderDash();renderEERR();showScreen('home');}
+}
 async function init() {
   // 1. Check for auth code in URL (coming back from Microsoft login)
   const urlParams = new URLSearchParams(window.location.search);
