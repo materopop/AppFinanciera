@@ -127,13 +127,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:16
 .resumen-tab.active{background:var(--text);color:var(--bg);border-color:var(--text);}
 .resumen-row{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:10px;overflow:hidden;}
 .resumen-row-head{display:flex;align-items:center;padding:11px 14px;gap:10px;}
-.rsum-status{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
-.rsum-status.new{background:var(--green-bg);color:var(--green);}
-.rsum-status.matched{background:var(--surface2);color:var(--text3);}
-.rsum-status.financial{background:var(--amber-bg);color:var(--amber);}
-.rsum-toggle{width:24px;height:24px;border-radius:6px;border:0.5px solid var(--border2);background:none;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;flex-shrink:0;}
-.rsum-toggle.on{background:var(--green);border-color:var(--green);color:#fff;}
-.rsum-toggle.off{background:var(--surface2);color:var(--text3);}
+
+.rsum-check{display:flex;align-items:center;cursor:pointer;flex-shrink:0;}
+.rsum-check input[type=checkbox]{position:absolute;opacity:0;width:0;height:0;}
+.rsum-check-box{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--border2);background:var(--surface2);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.rsum-check input:checked+.rsum-check-box{background:var(--green);border-color:var(--green);}
+.rsum-check input:checked+.rsum-check-box::after{content:"✓";font-size:13px;color:#fff;font-weight:600;}
+.rsum-cuota-badge{font-size:10px;font-weight:500;padding:1px 6px;border-radius:99px;background:var(--amber-bg);color:var(--amber);margin-left:4px;vertical-align:middle;}
 .rsum-body{flex:1;min-width:0;}
 .rsum-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rsum-detail{font-size:11px;color:var(--text3);margin-top:1px;}
@@ -1873,6 +1873,55 @@ function renderUserPill(){
 }
 function renderAll(){renderDash();renderUserPill();}
 
+// ── CUOTAS ────────────────────────────────────────────────────────────────────
+function parseCuotas(str){
+  if(!str) return null;
+  const m = String(str).match(/(\d+)[\\/](\d+)/);
+  if(!m) return null;
+  return {current:parseInt(m[1]),total:parseInt(m[2])};
+}
+
+function buildFutureInstallments(item){
+  const info = parseCuotas(item.cuotas);
+  if(!info||info.current>=info.total) return [];
+  const result=[];
+  const baseDate=new Date(item.fecha);
+  for(let c=info.current+1;c<=info.total;c++){
+    const d=new Date(baseDate);
+    d.setUTCMonth(d.getUTCMonth()+(c-info.current));
+    result.push({
+      ...item,
+      id:-(item.id*100+c), // negative id = synthetic
+      fecha:d.toISOString().split('T')[0],
+      cuotas:c+'/'+info.total,
+      matched:null,
+      incluir:true,
+      expanded:false,
+      isFuture:true
+    });
+  }
+  return result;
+}
+
+async function findAndUpdateRelatedCuotas(comercio, importe, concepto, agrupador, estructura){
+  // Find all transactions matching: same cc (after mapping) OR same detalle with cuota pattern, similar importe, nearby months
+  const margin = Math.abs(importe)*0.05;
+  const related = transactions.filter(t=>{
+    const sameConcepto = t.cc===concepto;
+    const sameImporte = Math.abs(Math.abs(t.saldo)-Math.abs(importe))<=margin;
+    const hasCuota = t.detalle&&/\d+\/\d+/.test(t.detalle);
+    return sameConcepto&&sameImporte&&hasCuota;
+  });
+  if(!related.length) return 0;
+  let updated=0;
+  for(const t of related){
+    const row=[t.cc,t.proveedor||'',t.detalle||'',t.medio||'',t.saldo,t.periodo||'',t.estado||'Contable',t.imprevisto?'Imprevisto':'',t.mes,t.anio,estructura,agrupador];
+    const ok=await updateRowInOneDrive(t.ri,row);
+    if(ok){t.estructura=estructura;t.agrupador=agrupador;updated++;}
+  }
+  return updated;
+}
+
 // ── RESUMEN ───────────────────────────────────────────────────────────────────
 let resumenItems = []; // parsed items from PDF
 let resumenMedio = '';
@@ -2030,6 +2079,15 @@ function buildResumenItems(txs){
     };
   });
 
+  // Expand with future installments
+  const expanded=[];
+  for(const item of resumenItems){
+    expanded.push(item);
+    const futures=buildFutureInstallments(item);
+    for(const f of futures) expanded.push(f);
+  }
+  resumenItems=expanded;
+
   document.getElementById('resumen-step-upload').style.display='none';
   document.getElementById('resumen-step-conciliacion').style.display='block';
   document.getElementById('resumen-btn-cancel').style.display='flex';
@@ -2082,18 +2140,24 @@ function renderResumenList(){
     const toggleIcon=item.incluir?'ti-check':'ti-x';
     const editOpen=item.expanded?'open':'';
     const allConceptos=conceptos.filter(c=>c.estructura!=='2. Ingresos').map(c=>`<option value="${c.concepto}"${c.concepto===item.concepto?' selected':''}>${c.concepto}</option>`).join('');
+    const cuotasInfo = parseCuotas(item.cuotas);
 
     return `<div class="resumen-row" id="rrow-${item.id}">
-      <div class="resumen-row-head">
-        <button class="rsum-toggle ${toggleClass}" onclick="toggleResumenItem(${item.id})" aria-label="Incluir/Excluir"><i class="ti ${toggleIcon}"></i></button>
-        <div class="rsum-status ${statusClass}"><i class="ti ${statusIcon}" aria-hidden="true"></i></div>
-        <div class="rsum-body" onclick="toggleResumenExpand(${item.id})" style="cursor:pointer">
-          <div class="rsum-name">${item.descripcion}${item.cuotas?' <span style="font-size:10px;color:var(--text3)">('+item.cuotas+')</span>':''}</div>
-          <div class="rsum-detail">${fmtD(item.fecha)} · ${item.concepto}${item.matched?'':''}</div>
+      <div class="resumen-row-head" onclick="toggleResumenExpand(${item.id})" style="cursor:pointer">
+        <label class="rsum-check" onclick="event.stopPropagation()">
+          <input type="checkbox" ${item.incluir?'checked':''} onchange="toggleResumenItem(${item.id})" aria-label="Incluir en carga">
+          <span class="rsum-check-box"></span>
+        </label>
+        <div class="rsum-body" style="flex:1;min-width:0">
+          <div class="rsum-name">${item.descripcion}${item.cuotas?' <span class="rsum-cuota-badge">${item.cuotas}</span>':''}</div>
+          <div class="rsum-detail">${fmtD(item.fecha)} · <strong>${item.concepto}</strong> · ${item.agrupador.replace(/^\d+\.\s*/,'')}</div>
           ${item.matched?`<div class="rsum-match">≈ ya registrado como "${item.matched.cc}" (${fmt(item.matched.saldo)})</div>`:''}
+          ${cuotasInfo&&cuotasInfo.total>cuotasInfo.current?`<div class="rsum-match" style="color:var(--amber)">${cuotasInfo.total-cuotasInfo.current} cuota(s) futura(s) se cargarán automáticamente</div>`:''}
         </div>
-        <div class="rsum-amt">-${fmt(item.importe)}</div>
-        <i class="ti ti-chevron-${item.expanded?'up':'down'}" style="font-size:14px;color:var(--text3);flex-shrink:0" aria-hidden="true"></i>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="rsum-amt">-${fmt(item.importe)}</div>
+          <i class="ti ti-chevron-${item.expanded?'up':'down'}" style="font-size:14px;color:var(--text3)" aria-hidden="true"></i>
+        </div>
       </div>
       <div class="rsum-edit ${editOpen}">
         <div class="rsum-edit-grid">
@@ -2149,12 +2213,16 @@ function updateResumenItem(id,field,value){
   if(field==='concepto'){
     const cdata=getConceptoData(value);
     if(cdata){item.estructura=cdata.estructura;item.agrupador=cdata.agrupador;}
-    // Bulk update existing transactions with old concept name
+    // Also update same-concept future cuotas in this resumen
+    const info=parseCuotas(item.cuotas);
+    if(info) resumenItems.filter(i=>i.id!==id&&parseCuotas(i.cuotas)&&Math.abs(i.importe-item.importe)<item.importe*0.05).forEach(i=>{i.concepto=value;i.estructura=item.estructura;i.agrupador=item.agrupador;});
+    // Bulk update existing transactions + related cuotas
     if(oldConcepto!==value) bulkUpdateConcepto(oldConcepto,value,item.agrupador,item.estructura);
+    findAndUpdateRelatedCuotas(item.descripcion,item.importe,value,item.agrupador,item.estructura);
   }
   if(field==='agrupador'){
-    // Also bulk update agrupador for all matching transactions
     bulkUpdateConcepto(item.concepto,item.concepto,value,item.estructura);
+    findAndUpdateRelatedCuotas(item.descripcion,item.importe,item.concepto,value,item.estructura);
   }
 }
 
